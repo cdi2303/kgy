@@ -22,20 +22,12 @@
 연동: 카카오워크 확장서비스 → Incoming Webhook → Bot 생성 → 채팅방 선택 → Webhook URL 발급 → 그 URL로 JSON POST.
 
 **우리 코드 영향**: 거의 없음. `src/notify.js`가 이미 per-check `webhook_url`로 POST 중.
-단, 카카오워크는 **고유 payload 포맷**(예: `{ "text": "..." }` 형태)을 기대 → 현재 우리 payload(`{event,check_id,...}`)는 메시지로 안 보임.
-→ **카카오워크 전용 어댑터**(상태→텍스트 변환)만 추가하면 됨. 작은 작업.
+✅ **어댑터 구현됨 (2026-06-19)**: webhook URL 호스트가 `*.kakaowork.com`이면 `{ text }` 채팅 포맷으로,
+그 외엔 기존 generic payload로 발송. `notify.isKakaoWork()` / `notify.kakaoworkText()`,
+smoke에 단위 검증(감지+위장호스트 거부+문구) 포함.
 
-```js
-// notify.js에 추가될 형태 (설계만)
-function kakaoworkText(check, state){
-  return state === 'down'
-    ? `⛔ [${check.name}] 신호 끊김 — 배치 점검 필요`
-    : `✅ [${check.name}] 정상 복구`;
-}
-// webhook이 카카오워크 URL이면 { text } 로 감싸 POST
-```
-
-> ⚠️ 카카오워크 정확한 payload 스키마는 발급 시 문서 확인 필요(텍스트/블록 형식). 연동 시 확정.
+> ⚠️ 남은 확인: 카카오워크 incoming webhook의 정확한 payload 스키마(텍스트 vs 블록)는
+> 실제 webhook URL 발급 후 응답으로 최종 확정 필요. 현재는 단순 `{ text }` 가정.
 
 ---
 

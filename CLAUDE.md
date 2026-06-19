@@ -81,7 +81,7 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 - check CRUD (생성/조회/일시정지/재개/삭제)
 - heartbeat 수신 (success/start/fail)
 - 기한초과 자동 DOWN 판정 + 복구 UP 판정
-- 알림: 콘솔 로그 + per-check webhook POST
+- 알림: 콘솔 로그 + per-check webhook POST. **카카오워크 어댑터**: webhook URL 호스트가 `*.kakaowork.com`이면 `{text}` 채팅 포맷 발송(위장 호스트 거부), 그 외 generic payload. (승인 불필요라 선구현)
 - **라우팅**: `/` = 랜딩(대기자 수집), `/app` = 대시보드
 - **랜딩 + 대기자 수집**: `public/landing.html` + `/api/waitlist`(POST 등록/dedupe, GET /count)
 - **`LANDING_ONLY=true`**: 프로덕션 배포용. 랜딩+waitlist만 노출, checks/ping/`/app`/워커 차단(미인증 API·SSRF 표면 제거). 로컬은 미설정=풀앱. 배포는 `DEPLOY.md`(Railway) 참고.

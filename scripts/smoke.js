@@ -16,6 +16,7 @@ process.env.WORKER_INTERVAL_SECONDS = '1';
 for (const f of [TEST_DB, TEST_DB + '-wal', TEST_DB + '-shm']) { try { fs.unlinkSync(f); } catch {} }
 
 const { start } = require('../src/server');
+const notify = require('../src/notify');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const j = (res) => res.json();
@@ -75,6 +76,16 @@ const base = process.env.BASE_URL;
     const { count } = await j(await fetch(`${base}/api/waitlist/count`));
     assert.strictEqual(count, 1, 'waitlist count = 1');
     console.log('  ✓ waitlist signup/dedupe/validation/count');
+
+    // 7. KakaoWork webhook adapter (pure-function checks, no network)
+    assert.strictEqual(notify.isKakaoWork('https://api.kakaowork.com/v1/incoming/xyz'), true, 'kakaowork host detected');
+    assert.strictEqual(notify.isKakaoWork('https://kakaowork.com/abc'), true, 'apex kakaowork detected');
+    assert.strictEqual(notify.isKakaoWork('https://hooks.slack.com/services/x'), false, 'slack is not kakaowork');
+    assert.strictEqual(notify.isKakaoWork('https://notkakaowork.com/x'), false, 'lookalike host rejected');
+    assert.strictEqual(notify.isKakaoWork('https://kakaowork.com.evil.net/x'), false, 'suffix-spoof host rejected');
+    assert.match(notify.kakaoworkText({ name: 'backup' }, 'down'), /신호 끊김/, 'down text');
+    assert.match(notify.kakaoworkText({ name: 'backup' }, 'up'), /정상 복구/, 'up text');
+    console.log('  ✓ kakaowork adapter (detect + spoof-reject + text)');
 
     console.log('\nSMOKE PASS ✅');
     server.close();
