@@ -96,7 +96,9 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 - ⚠️ Git Bash에서 `/data` 같은 경로 인자는 `MSYS_NO_PATHCONV=1` 안 붙이면 Windows 경로로 변환됨.
 - 현재 waitlist에 테스트 행 1개 있음(배포 검증용). 정리하려면 Railway 대시보드에서 SSH 키 등록 후 삭제, 또는 무시.
 
-**다음 (ROADMAP Stage 1 잔여 — 코드 아님):** 트래픽 유입 → 대기자/유료의사 신호 수집. 신호 확인 후 Stage 2(MVP) 진입.
+**Stage 1 자산:** `GTM.md`(채널·포스트·검증질문·Go/No-Go, 근거 기반), `ALIMTALK.md`(카톡 발송 기술검토).
+**다음 (ROADMAP Stage 1 잔여 — 코드 아님):** 트래픽 유입(GTM.md, 게시는 본인) → 검증 인터뷰 → 신호 확인 후 Stage 2.
+**Stage 2 핵심 변수:** 알림톡 정보성 심사 통과 여부(ALIMTALK.md). 코드보다 심사 검증 먼저.
 
 ## 작업 규칙 (이 프로젝트)
 
