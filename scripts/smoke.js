@@ -56,6 +56,26 @@ const base = process.env.BASE_URL;
     assert.ok(detail.events.length >= 2, 'events recorded');
     console.log('  ✓ events recorded:', detail.events.length);
 
+    // 6. waitlist: signup, dedupe, count
+    const w1 = await j(await fetch(`${base}/api/waitlist`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'tester@example.com', source: 'smoke' }),
+    }));
+    assert.strictEqual(w1.already, false, 'first signup is new');
+    const w2 = await j(await fetch(`${base}/api/waitlist`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'tester@example.com' }),
+    }));
+    assert.strictEqual(w2.already, true, 'duplicate detected');
+    const bad = await fetch(`${base}/api/waitlist`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'not-an-email' }),
+    });
+    assert.strictEqual(bad.status, 400, 'invalid email rejected');
+    const { count } = await j(await fetch(`${base}/api/waitlist/count`));
+    assert.strictEqual(count, 1, 'waitlist count = 1');
+    console.log('  ✓ waitlist signup/dedupe/validation/count');
+
     console.log('\nSMOKE PASS ✅');
     server.close();
     process.exit(0);

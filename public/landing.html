@@ -1,0 +1,214 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CronWatch — 배치가 죽으면 카톡으로 알려드립니다</title>
+<meta name="description" content="크론잡·배치 작업이 조용히 멈춰도 카카오톡(알림톡)으로 즉시 알려주는 모니터링 서비스." />
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#13161d; --line:#232834; --fg:#eef1f6; --mut:#9aa3b2;
+    --brand:#fee500; --brand-ink:#191600; --accent:#5b8cff; --down:#f85149; --up:#3fb950;
+    --maxw:680px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  a{color:var(--accent);text-decoration:none}
+
+  /* nav */
+  nav{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
+  .logo{font-weight:800;letter-spacing:-.02em;font-size:18px}
+  .logo b{color:var(--brand)}
+  nav .links a{color:var(--mut);margin-left:18px;font-size:14px}
+
+  /* hero */
+  .hero{padding:48px 0 56px;text-align:center}
+  .badge{display:inline-block;font-size:13px;color:var(--brand);background:rgba(254,229,0,.08);border:1px solid rgba(254,229,0,.25);padding:5px 12px;border-radius:999px;margin-bottom:22px}
+  h1{font-size:40px;line-height:1.2;letter-spacing:-.03em;margin:0 0 16px;font-weight:800}
+  h1 .hl{color:var(--brand)}
+  .sub{font-size:18px;color:var(--mut);margin:0 auto 32px;max-width:540px}
+
+  /* form */
+  form.signup{display:flex;gap:10px;max-width:440px;margin:0 auto}
+  form.signup input{flex:1;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:10px;color:var(--fg);font-size:15px}
+  form.signup input:focus{outline:none;border-color:var(--brand)}
+  form.signup button{padding:14px 22px;background:var(--brand);color:var(--brand-ink);border:0;border-radius:10px;font-weight:800;font-size:15px;cursor:pointer;white-space:nowrap}
+  form.signup button:disabled{opacity:.6;cursor:default}
+  .formnote{font-size:13px;color:var(--mut);margin-top:12px;min-height:20px}
+  .formnote.ok{color:var(--up)} .formnote.err{color:var(--down)}
+  .count{font-size:13px;color:var(--mut);margin-top:6px}
+
+  /* sections */
+  section{padding:44px 0;border-top:1px solid var(--line)}
+  h2{font-size:24px;letter-spacing:-.02em;margin:0 0 8px}
+  .lead{color:var(--mut);margin:0 0 28px}
+  .grid{display:grid;gap:16px}
+  .grid.three{grid-template-columns:repeat(3,1fr)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card .n{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:8px;background:rgba(91,140,255,.12);color:var(--accent);font-weight:800;margin-bottom:12px}
+  .card h3{margin:0 0 6px;font-size:16px}
+  .card p{margin:0;color:var(--mut);font-size:14px}
+  code{background:#0b0d12;border:1px solid var(--line);padding:2px 7px;border-radius:6px;font-size:13px;color:var(--brand)}
+
+  /* compare */
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:11px 10px;text-align:left;border-bottom:1px solid var(--line)}
+  th{color:var(--mut);font-weight:600;font-size:13px}
+  .yes{color:var(--up);font-weight:700}.no{color:var(--mut)}
+
+  /* pricing */
+  .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .plan{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;text-align:center}
+  .plan.feat{border-color:var(--brand)}
+  .plan .pn{font-size:14px;color:var(--mut)}
+  .plan .pp{font-size:26px;font-weight:800;margin:8px 0}
+  .plan .pp small{font-size:13px;color:var(--mut);font-weight:400}
+  .plan ul{list-style:none;padding:0;margin:14px 0 0;font-size:14px;color:var(--mut)}
+  .plan li{padding:5px 0}
+
+  footer{padding:36px 0;border-top:1px solid var(--line);color:var(--mut);font-size:13px;text-align:center}
+  .disc{font-size:12px;color:#5b6473;margin-top:8px}
+
+  @media(max-width:640px){
+    h1{font-size:30px}
+    .grid.three,.plans{grid-template-columns:1fr}
+    form.signup{flex-direction:column}
+  }
+</style>
+
+<div class="wrap">
+  <nav>
+    <div class="logo">Cron<b>Watch</b></div>
+    <div class="links"><a href="#how">작동방식</a><a href="#price">가격</a><a href="#cta">대기자 등록</a></div>
+  </nav>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="badge">🟡 카카오톡 알림 지원 — 국내 유일</span>
+    <h1>배치가 새벽에 조용히 죽어도,<br><span class="hl">카카오톡</span>으로 바로 압니다.</h1>
+    <p class="sub">크론잡·백업·정산 배치가 안 돌아도 며칠 뒤에야 발견하시나요?
+      CronWatch는 정해진 시각에 신호가 안 오면 즉시 알림톡으로 알려드립니다.</p>
+
+    <form class="signup" id="signup">
+      <input type="email" id="email" placeholder="you@company.com" required autocomplete="email" />
+      <button type="submit" id="submit">대기자 등록</button>
+    </form>
+    <div class="formnote" id="note">출시 알림을 가장 먼저 받아보세요. 스팸 없음.</div>
+    <div class="count" id="count"></div>
+  </div>
+</header>
+
+<section id="problem">
+  <div class="wrap">
+    <h2>“그 배치, 언제부터 안 돌고 있었지?”</h2>
+    <p class="lead">크론은 실패해도 조용합니다. 로그를 안 보면 모릅니다.</p>
+    <div class="grid three">
+      <div class="card"><h3>😶 조용한 실패</h3><p>서버 재부팅·권한 변경·디스크 풀로 배치가 멈춰도 아무 알림이 없습니다.</p></div>
+      <div class="card"><h3>🕒 뒤늦은 발견</h3><p>백업이 3일째 안 돌던 걸 장애 터지고 나서야 압니다.</p></div>
+      <div class="card"><h3>📵 안 보는 채널</h3><p>이메일·슬랙 알림은 묻힙니다. 한국 팀이 진짜 보는 건 카톡입니다.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2>30초 연동, 그 다음은 자동</h2>
+    <p class="lead">에이전트 설치 없음. 크론 스크립트 끝에 한 줄이면 끝.</p>
+    <div class="grid three">
+      <div class="card"><span class="n">1</span><h3>체크 생성</h3><p>감시할 작업 이름과 예상 주기를 입력하면 고유 ping URL이 발급됩니다.</p></div>
+      <div class="card"><span class="n">2</span><h3>한 줄 추가</h3><p>크론 끝에 <code>curl …/ping/{토큰}</code> 추가. 실행될 때마다 신호를 보냅니다.</p></div>
+      <div class="card"><span class="n">3</span><h3>안 오면 카톡</h3><p>정해진 시간(+여유)에 신호가 없으면 즉시 알림톡/카카오워크로 통보.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="why">
+  <div class="wrap">
+    <h2>왜 CronWatch인가</h2>
+    <p class="lead">해외 서비스는 좋지만, 한국 팀이 보는 채널로는 안 옵니다.</p>
+    <table>
+      <thead><tr><th>기능</th><th>해외 서비스</th><th>CronWatch</th></tr></thead>
+      <tbody>
+        <tr><td>크론 생사 감시</td><td class="yes">○</td><td class="yes">○</td></tr>
+        <tr><td>카카오톡 알림톡</td><td class="no">✕</td><td class="yes">○</td></tr>
+        <tr><td>카카오워크 연동</td><td class="no">✕</td><td class="yes">○</td></tr>
+        <tr><td>한국어 UI·국내 결제</td><td class="no">✕</td><td class="yes">○</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="price">
+  <div class="wrap">
+    <h2>가격 (예정)</h2>
+    <p class="lead">출시 시 변동될 수 있습니다. 대기자에게 먼저 안내드립니다.</p>
+    <div class="plans">
+      <div class="plan"><div class="pn">Free</div><div class="pp">₩0</div><ul><li>체크 3개</li><li>카카오워크 알림</li><li>커뮤니티 지원</li></ul></div>
+      <div class="plan feat"><div class="pn">Pro</div><div class="pp">₩5,900<small>/월</small></div><ul><li>체크 20개</li><li>알림톡 + 이메일</li><li>이벤트 이력</li></ul></div>
+      <div class="plan"><div class="pn">Team</div><div class="pp">₩19,000<small>/월</small></div><ul><li>무제한 체크</li><li>알림톡 + 팀 채널</li><li>우선 지원</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section id="cta" style="text-align:center">
+  <div class="wrap">
+    <h2>출시 알림 받기</h2>
+    <p class="lead">이메일만 남겨주세요. 출시되면 가장 먼저 연락드립니다.</p>
+    <form class="signup" id="signup2">
+      <input type="email" id="email2" placeholder="you@company.com" required autocomplete="email" />
+      <button type="submit">대기자 등록</button>
+    </form>
+    <div class="formnote" id="note2"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    CronWatch — 크론/배치 모니터링 · 카카오톡 알림
+    <div class="disc">본 페이지는 수요 검증용 사전 등록 페이지입니다. 서비스는 준비 중입니다.</div>
+  </div>
+</footer>
+
+<script>
+async function refreshCount(){
+  try{
+    const {count} = await (await fetch('/api/waitlist/count')).json();
+    if(count>0) document.getElementById('count').textContent = `이미 ${count}명이 대기 중입니다.`;
+  }catch{}
+}
+
+function wire(formId, emailId, noteId){
+  const form = document.getElementById(formId);
+  if(!form) return;
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const email = document.getElementById(emailId).value.trim();
+    const note = document.getElementById(noteId);
+    const btn = form.querySelector('button');
+    btn.disabled = true;
+    try{
+      const res = await fetch('/api/waitlist',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ email, source: formId })
+      });
+      const data = await res.json();
+      if(res.ok){
+        note.className='formnote ok';
+        note.textContent = data.already ? '이미 등록된 이메일입니다. 감사합니다!' : '등록 완료! 출시되면 알려드릴게요. 🎉';
+        form.reset();
+        refreshCount();
+      }else{
+        note.className='formnote err';
+        note.textContent = data.error || '등록에 실패했습니다.';
+      }
+    }catch{
+      note.className='formnote err';
+      note.textContent = '네트워크 오류. 잠시 후 다시 시도해주세요.';
+    }finally{ btn.disabled=false; }
+  });
+}
+
+wire('signup','email','note');
+wire('signup2','email2','note2');
+refreshCount();
+</script>

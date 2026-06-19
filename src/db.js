@@ -38,6 +38,14 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_events_check ON events(check_id, received_at);
+
+  -- Stage 1 market validation: waitlist signups from the landing page.
+  CREATE TABLE IF NOT EXISTS waitlist (
+    id          TEXT PRIMARY KEY,
+    email       TEXT NOT NULL UNIQUE,
+    source      TEXT,
+    created_at  INTEGER NOT NULL
+  );
 `);
 
 const now = () => Date.now();
@@ -63,6 +71,8 @@ const stmt = {
     VALUES (@id, @check_id, @type, @received_at, @source_ip)
   `),
   recentEvents: db.prepare(`SELECT * FROM events WHERE check_id = ? ORDER BY received_at DESC LIMIT ?`),
+  insertWaitlist: db.prepare(`INSERT OR IGNORE INTO waitlist (id, email, source, created_at) VALUES (@id, @email, @source, @created_at)`),
+  countWaitlist: db.prepare(`SELECT COUNT(*) AS n FROM waitlist`),
 };
 
 module.exports = {
@@ -100,4 +110,12 @@ module.exports = {
   addEvent({ check_id, type, source_ip = null }) {
     stmt.insertEvent.run({ id: uid(), check_id, type, received_at: now(), source_ip });
   },
+
+  // Returns true if newly added, false if email already on the list.
+  addWaitlist(email, source = null) {
+    const res = stmt.insertWaitlist.run({ id: uid(), email, source, created_at: now() });
+    return res.changes > 0;
+  },
+
+  waitlistCount: () => stmt.countWaitlist.get().n,
 };
