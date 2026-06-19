@@ -1,0 +1,20 @@
+{
+  "name": "cronwatch",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cron/batch job monitoring SaaS (dead man's switch). PoC.",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "smoke": "node scripts/smoke.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2"
+  }
+}
