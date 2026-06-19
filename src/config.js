@@ -13,4 +13,10 @@ module.exports = {
   BASE_URL: process.env.BASE_URL || `http://localhost:${process.env.PORT || '3000'}`,
   WORKER_INTERVAL_SECONDS: parseInt(process.env.WORKER_INTERVAL_SECONDS || '15', 10),
   DB_PATH: path.resolve(ROOT, process.env.DB_PATH || 'data/cronwatch.sqlite'),
+
+  // Stage 1 production: serve ONLY the landing page + waitlist API.
+  // Hides the unauthenticated checks/ping API and the worker, so a public
+  // deploy can't be abused (SSRF via webhook_url, junk checks). Full app
+  // (dashboard + monitoring) runs locally with this unset/false.
+  LANDING_ONLY: process.env.LANDING_ONLY === 'true',
 };

@@ -84,6 +84,7 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 - 알림: 콘솔 로그 + per-check webhook POST
 - **라우팅**: `/` = 랜딩(대기자 수집), `/app` = 대시보드
 - **랜딩 + 대기자 수집**: `public/landing.html` + `/api/waitlist`(POST 등록/dedupe, GET /count)
+- **`LANDING_ONLY=true`**: 프로덕션 배포용. 랜딩+waitlist만 노출, checks/ping/`/app`/워커 차단(미인증 API·SSRF 표면 제거). 로컬은 미설정=풀앱. 배포는 `DEPLOY.md`(Railway) 참고.
 
 **아직 없음 (의도적 — 범위 밖):** 인증/멀티테넌시, 이메일·Slack·**카톡** 실제 발송, 결제, 알림 중복억제 정교화, 배포.
 

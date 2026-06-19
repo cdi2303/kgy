@@ -11,25 +11,25 @@ const worker = require('./worker');
 const app = express();
 app.use(express.json());
 
-// API
-app.use('/api/checks', require('./routes/checks'));
+// Always public: landing page + waitlist (Stage 1 market validation).
 app.use('/api/waitlist', require('./routes/waitlist'));
-// Heartbeat ingestion (no /api prefix: short URLs for cron scripts)
-app.use('/ping', require('./routes/ping'));
-
-// Landing page (market validation) at root; dashboard at /app.
 app.get('/', (req, res) => res.sendFile(path.join(config.ROOT, 'public', 'landing.html')));
-app.get('/app', (req, res) => res.sendFile(path.join(config.ROOT, 'public', 'index.html')));
-
-// Static assets
 app.use(express.static(path.join(config.ROOT, 'public')));
-
 app.get('/health', (req, res) => res.json({ ok: true }));
 
+// Full product (dashboard + monitoring). Disabled in LANDING_ONLY mode so a
+// public Stage 1 deploy doesn't expose the unauthenticated checks API.
+if (!config.LANDING_ONLY) {
+  app.use('/api/checks', require('./routes/checks'));
+  app.use('/ping', require('./routes/ping')); // short URLs for cron scripts
+  app.get('/app', (req, res) => res.sendFile(path.join(config.ROOT, 'public', 'index.html')));
+}
+
 function start() {
-  worker.start();
+  if (!config.LANDING_ONLY) worker.start();
   return app.listen(config.PORT, () => {
-    console.log(`[server] CronWatch listening on ${config.BASE_URL}`);
+    const mode = config.LANDING_ONLY ? 'LANDING_ONLY' : 'full';
+    console.log(`[server] CronWatch (${mode}) listening on ${config.BASE_URL}`);
   });
 }
 
