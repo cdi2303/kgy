@@ -28,7 +28,7 @@
       경쟁사(Healthchecks/Cronitor/DMS) 전부 Slack/Telegram 중심, 카톡 연동 0.
 - [x] **랜딩페이지 + 대기자 수집** — `public/landing.html` + `/api/waitlist`. 동작 확인(smoke).
 - [x] **가격 가설**: Free 3 checks / ₩5,900 20 checks / ₩19,000 무제한+알림톡.
-- [ ] **랜딩 배포** (Vercel/Netlify static + 별도 백엔드, 또는 단일 VPS). 실제 URL 확보.
+- [x] **랜딩 배포 (2026-06-19)**: Railway. 라이브 → **https://cronwatch-production.up.railway.app** (LANDING_ONLY=true).
 - [ ] **트래픽 유입** (개발 커뮤니티/SNS/지인) → 대기자 수집.
 - [ ] **수요 신호 판정**: 유료 의사 ≥5명 또는 대기자 목표치 도달.
 

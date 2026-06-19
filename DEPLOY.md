@@ -1,7 +1,16 @@
 # 배포 가이드 (Railway, Stage 1)
 
+> **상태: 배포 완료 (2026-06-19)** → https://cronwatch-production.up.railway.app
+> 재배포는 `kgy`에서 `railway up --detach` (이미 링크됨). 아래는 처음부터 다시 할 때 참고.
+
 Stage 1 목표 = **공개 랜딩 + 대기자 수집**. 프로덕션은 `LANDING_ONLY=true`로
 랜딩/waitlist만 띄우고 미인증 checks API·SSRF 위험·워커는 끈다.
+
+## ⚠️ 실제 배포에서 걸린 함정 2개 (해결됨)
+1. **Node 버전**: Nixpacks가 Node 24 기본 선택 → better-sqlite3 prebuilt 없어 소스빌드 → 빌더에 Python 없어 실패.
+   → `.nvmrc=20` + `engines.node=20.x` + 변수 `NIXPACKS_NODE_VERSION=20`로 Node 20 고정(prebuilt 사용). **올리지 말 것.**
+2. **Git Bash 경로 변환**: `--set DB_PATH=/data/...`, `--mount-path /data`에서 `/data`가 `C:/Program Files/Git/data`로 변환됨.
+   → 명령 앞에 `MSYS_NO_PATHCONV=1` 붙여 변환 차단.
 
 ## 왜 Railway
 - 모니터링 서비스라 워커가 24/7 떠 있어야 함 + SQLite 영구 디스크 필요.

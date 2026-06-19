@@ -88,7 +88,15 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 
 **아직 없음 (의도적 — 범위 밖):** 인증/멀티테넌시, 이메일·Slack·**카톡** 실제 발송, 결제, 알림 중복억제 정교화, 배포.
 
-**다음 (ROADMAP Stage 1 잔여 — 코드 아님):** 랜딩 배포 → 트래픽 유입 → 대기자/유료의사 신호 수집. 신호 확인 후 Stage 2(MVP) 진입.
+**배포됨 (2026-06-19):** Railway 라이브 → **https://cronwatch-production.up.railway.app** (LANDING_ONLY=true, 랜딩+waitlist만).
+- 프로젝트 `cronwatch` (cdi2303's Projects), 서비스 `cronwatch`, 볼륨 `/data`(SQLite 영구저장).
+- 재배포: `kgy`에서 `railway up --detach` (이미 링크됨). 상태: `railway status`. 로그: `railway logs` / `railway logs --build`.
+- 프로덕션 변수: `LANDING_ONLY=true`, `DB_PATH=/data/cronwatch.sqlite`, `NIXPACKS_NODE_VERSION=20`.
+- ⚠️ **Node 20 핀 유지** (`.nvmrc`, engines): better-sqlite3 prebuilt용. Node 24면 소스빌드→Python 없어 빌드 실패.
+- ⚠️ Git Bash에서 `/data` 같은 경로 인자는 `MSYS_NO_PATHCONV=1` 안 붙이면 Windows 경로로 변환됨.
+- 현재 waitlist에 테스트 행 1개 있음(배포 검증용). 정리하려면 Railway 대시보드에서 SSH 키 등록 후 삭제, 또는 무시.
+
+**다음 (ROADMAP Stage 1 잔여 — 코드 아님):** 트래픽 유입 → 대기자/유료의사 신호 수집. 신호 확인 후 Stage 2(MVP) 진입.
 
 ## 작업 규칙 (이 프로젝트)
 
