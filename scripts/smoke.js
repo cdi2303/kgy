@@ -19,8 +19,9 @@ process.env.ADMIN_TOKEN = 'smoke-admin-token';
 process.env.TELEGRAM_BOT_TOKEN = 'smoketoken';
 process.env.TELEGRAM_CHAT_ID = '12345';
 process.env.TELEGRAM_API_BASE = 'http://localhost:3998';
-process.env.SMTP_HOST = 'json'; // nodemailer jsonTransport (no real send)
-process.env.SMTP_FROM = 'CronWatch <test@cronwatch.test>';
+process.env.RESEND_API_KEY = 'test-key'; // Resend HTTP path → local capture
+process.env.RESEND_API_BASE = 'http://localhost:3997';
+process.env.EMAIL_FROM = 'CronWatch <test@cronwatch.test>';
 for (const f of [TEST_DB, TEST_DB + '-wal', TEST_DB + '-shm']) { try { fs.unlinkSync(f); } catch {} }
 
 const { start } = require('../src/server');
@@ -38,6 +39,13 @@ const base = process.env.BASE_URL;
     let b = ''; req.on('data', (c) => (b += c));
     req.on('end', () => { try { captured.push(JSON.parse(b)); } catch {} res.end('ok'); });
   }).listen(3998);
+
+  // Separate capture for the Resend email HTTP API.
+  const emailCaptured = [];
+  const emailSrv = http.createServer((req, res) => {
+    let b = ''; req.on('data', (c) => (b += c));
+    req.on('end', () => { try { emailCaptured.push(JSON.parse(b)); } catch {} res.writeHead(200, {'Content-Type':'application/json'}); res.end('{"id":"test"}'); });
+  }).listen(3997);
 
   const server = start();
   await sleep(300);
@@ -179,20 +187,23 @@ const base = process.env.BASE_URL;
     await assertPublicUrl('https://8.8.8.8/'); // public IP literal allowed
     console.log('  ✓ ssrf guard (private/metadata blocked, public allowed)');
 
-    // 14. email channel (json transport — composes without sending)
+    // 14. email channel via Resend HTTP API (captured locally)
     assert.ok(notify.emailEnabled(), 'email enabled');
-    const info = await notify.sendEmail('owner@test', '⛔ [job] 다운', '본문');
-    assert.ok(info && info.message, 'email composed');
-    const msg = info.message.toString();
-    assert.ok(msg.includes('owner@test') && msg.includes('job'), 'email has recipient+subject');
-    console.log('  ✓ email channel (composed via SMTP json transport)');
+    const ok = await notify.sendEmail('owner@test', '⛔ [job] 다운', '본문');
+    assert.strictEqual(ok, true, 'resend send ok');
+    const m = emailCaptured.find((e) => e.to === 'owner@test');
+    assert.ok(m, 'email POSTed to resend');
+    assert.ok(m.subject.includes('job') && m.from, 'subject+from');
+    // down/recovery alerts (sections 3-4) also emailed the check owner via Resend
+    assert.ok(emailCaptured.some((e) => e.to === 'smoke@user.test'), 'alert emails sent to owner');
+    console.log('  ✓ email channel (Resend HTTP API + alert path)');
 
     console.log('\nSMOKE PASS ✅');
-    server.close(); capSrv.close();
+    server.close(); capSrv.close(); emailSrv.close();
     process.exit(0);
   } catch (err) {
     console.error('\nSMOKE FAIL ❌', err.message);
-    server.close(); capSrv.close();
+    server.close(); capSrv.close(); emailSrv.close();
     process.exit(1);
   }
 })();

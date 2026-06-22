@@ -22,14 +22,35 @@ function transport() {
 }
 
 function emailEnabled() {
-  return !!config.SMTP_HOST;
+  return !!(config.RESEND_API_KEY || config.SMTP_HOST);
+}
+
+// Resend HTTP API (works through Railway; SMTP ports are blocked there).
+async function sendViaResend(to, subject, text) {
+  try {
+    const res = await fetch(`${config.RESEND_API_BASE}/emails`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${config.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: config.EMAIL_FROM, to, subject, text }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) {
+      console.error(`[notify] resend email failed to ${to}: HTTP ${res.status}`);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error(`[notify] resend email failed to ${to}: ${err.message}`);
+    return false;
+  }
 }
 
 async function sendEmail(to, subject, text) {
+  if (config.RESEND_API_KEY) return sendViaResend(to, subject, text);
   const t = transport();
   if (!t) return false;
   try {
-    return await t.sendMail({ from: config.SMTP_FROM, to, subject, text });
+    return await t.sendMail({ from: config.SMTP_FROM || config.EMAIL_FROM, to, subject, text });
   } catch (err) {
     console.error(`[notify] email failed to ${to}: ${err.message}`);
     return false;

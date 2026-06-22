@@ -34,10 +34,14 @@ module.exports = {
   TELEGRAM_API_BASE: process.env.TELEGRAM_API_BASE || 'https://api.telegram.org',
 
   // Email alerts (down/recovery → check owner). All unset = email disabled.
-  // SMTP_HOST='json' uses nodemailer's jsonTransport (no send) for tests.
+  // PREFERRED on Railway: Resend HTTP API (port 443) — PaaS block outbound SMTP.
+  RESEND_API_KEY: process.env.RESEND_API_KEY || '',
+  RESEND_API_BASE: process.env.RESEND_API_BASE || 'https://api.resend.com',
+  EMAIL_FROM: process.env.EMAIL_FROM || 'CronWatch <onboarding@resend.dev>',
+  // SMTP fallback (works off-Railway). SMTP_HOST='json' = jsonTransport (tests).
   SMTP_HOST: process.env.SMTP_HOST || '',
   SMTP_PORT: parseInt(process.env.SMTP_PORT || '587', 10),
   SMTP_USER: process.env.SMTP_USER || '',
   SMTP_PASS: process.env.SMTP_PASS || '',
-  SMTP_FROM: process.env.SMTP_FROM || 'CronWatch <no-reply@cronwatch.app>',
+  SMTP_FROM: process.env.SMTP_FROM || '',
 };
