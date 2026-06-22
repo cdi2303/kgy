@@ -97,7 +97,8 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 - 프로덕션 변수: `LANDING_ONLY=true`, `DB_PATH=/data/cronwatch.sqlite`, `NIXPACKS_NODE_VERSION=20`.
 - ⚠️ **Node 20 핀 유지** (`.nvmrc`, engines): better-sqlite3 prebuilt용. Node 24면 소스빌드→Python 없어 빌드 실패.
 - ⚠️ Git Bash에서 `/data` 같은 경로 인자는 `MSYS_NO_PATHCONV=1` 안 붙이면 Windows 경로로 변환됨.
-- 현재 waitlist에 테스트 행 1개 있음(배포 검증용). 정리하려면 Railway 대시보드에서 SSH 키 등록 후 삭제, 또는 무시.
+- waitlist/stats = **0으로 초기화됨(2026-06-22)**, 깨끗한 출시 상태. (검증 중 쌓인 테스트 데이터는 볼륨 재생성으로 제거.)
+- 프로덕션 데이터 wipe 방법: `railway volume delete --volume cronwatch-volume --yes` → `MSYS_NO_PATHCONV=1 railway volume add --mount-path /data` → `railway up --detach`. (볼륨 *파일* 단위 접근/`railway ssh`는 SSH 키 등록 필요 — 대시보드에서.)
 
 **Stage 1 자산:** `GTM.md`(채널·포스트·검증질문·Go/No-Go, 근거 기반), `ALIMTALK.md`(카톡 발송 기술검토).
 **다음 (ROADMAP Stage 1 잔여 — 코드 아님):** 트래픽 유입(GTM.md, 게시는 본인) → 검증 인터뷰 → 신호 확인 후 Stage 2.
