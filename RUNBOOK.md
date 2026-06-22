@@ -7,6 +7,15 @@
 
 ---
 
+## 신호 어떻게 확인하나
+
+- **어드민 대시보드**: `https://cronwatch-production.up.railway.app/admin`
+  → `ADMIN_TOKEN` 입력. 방문/가입/전환 + **채널별 가입(ref)** + **최근 가입(이메일 마스킹)** 표시.
+  토큰 확인: 터미널 `railway variables` 에서 `ADMIN_TOKEN` 값 복사.
+- **빠른 숫자만**: `GET /api/stats` (공개, 숫자만) — `{landing_views, signups, conversion}`.
+- **봇 vs 진짜 구분**: 어드민의 최근 가입 도메인 보면 판단. `@example.com` 류 = 테스트/봇.
+- **판단**: 숫자는 보조. 본 신호는 **인터뷰**(아래 시나리오).
+
 ## 0. 지금 즉시 (게시 전/직후)
 
 1. `GTM.md` 포스트 3종 본인 목소리로 다듬기.

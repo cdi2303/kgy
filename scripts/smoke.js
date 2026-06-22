@@ -13,6 +13,7 @@ process.env.DB_PATH = 'data/smoke-test.sqlite';
 process.env.PORT = '3999';
 process.env.BASE_URL = 'http://localhost:3999';
 process.env.WORKER_INTERVAL_SECONDS = '1';
+process.env.ADMIN_TOKEN = 'smoke-admin-token';
 for (const f of [TEST_DB, TEST_DB + '-wal', TEST_DB + '-shm']) { try { fs.unlinkSync(f); } catch {} }
 
 const { start } = require('../src/server');
@@ -106,6 +107,18 @@ const base = process.env.BASE_URL;
     }
     assert.ok(saw429, 'rate limit returns 429 past the cap');
     console.log('  ✓ waitlist rate limit (429 enforced)');
+
+    // 10. admin signal: auth + masking
+    const noAuth = await fetch(`${base}/api/admin/signal`);
+    assert.strictEqual(noAuth.status, 401, 'admin requires token');
+    const wrong = await fetch(`${base}/api/admin/signal`, { headers: { 'x-admin-token': 'nope' } });
+    assert.strictEqual(wrong.status, 401, 'wrong token rejected');
+    const sig = await j(await fetch(`${base}/api/admin/signal`, { headers: { 'x-admin-token': 'smoke-admin-token' } }));
+    assert.ok(Array.isArray(sig.by_channel) && Array.isArray(sig.recent), 'signal shape');
+    assert.ok(sig.recent.length >= 1, 'has recent signups');
+    assert.ok(sig.recent.every((r) => r.email.includes('*')), 'emails masked');
+    assert.ok(!sig.recent.some((r) => r.email === 'tester@example.com'), 'no raw email leaked');
+    console.log('  ✓ admin signal (auth + masking)');
 
     console.log('\nSMOKE PASS ✅');
     server.close();

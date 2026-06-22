@@ -19,4 +19,8 @@ module.exports = {
   // deploy can't be abused (SSRF via webhook_url, junk checks). Full app
   // (dashboard + monitoring) runs locally with this unset/false.
   LANDING_ONLY: process.env.LANDING_ONLY === 'true',
+
+  // Owner-only token to view the validation signal (/admin). When unset the
+  // admin endpoint 404s entirely. Secret — set via env, never hardcode.
+  ADMIN_TOKEN: process.env.ADMIN_TOKEN || '',
 };

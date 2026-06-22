@@ -24,6 +24,9 @@ app.get('/api/stats', (req, res) => {
   const signups = db.waitlistCount();
   res.json({ landing_views: views, signups, conversion: views ? +(signups / views).toFixed(4) : 0 });
 });
+// Owner-only signal view (token-protected; 404 when ADMIN_TOKEN unset).
+app.use('/api/admin', require('./routes/admin'));
+app.get('/admin', (req, res) => res.sendFile(path.join(config.ROOT, 'public', 'admin.html')));
 app.use(express.static(path.join(config.ROOT, 'public')));
 app.get('/health', (req, res) => res.json({ ok: true }));
 

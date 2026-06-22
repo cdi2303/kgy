@@ -82,6 +82,8 @@ const stmt = {
   countWaitlist: db.prepare(`SELECT COUNT(*) AS n FROM waitlist`),
   bumpStat: db.prepare(`INSERT INTO stats (key, n) VALUES (?, 1) ON CONFLICT(key) DO UPDATE SET n = n + 1`),
   getStat: db.prepare(`SELECT n FROM stats WHERE key = ?`),
+  waitlistRecent: db.prepare(`SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC LIMIT ?`),
+  waitlistByChannel: db.prepare(`SELECT COALESCE(source,'?') AS source, COUNT(*) AS n FROM waitlist GROUP BY source ORDER BY n DESC`),
 };
 
 module.exports = {
@@ -130,4 +132,7 @@ module.exports = {
 
   bumpStat: (key) => stmt.bumpStat.run(key),
   statValue: (key) => (stmt.getStat.get(key) || { n: 0 }).n,
+
+  waitlistRecent: (limit = 50) => stmt.waitlistRecent.all(limit),
+  waitlistByChannel: () => stmt.waitlistByChannel.all(),
 };

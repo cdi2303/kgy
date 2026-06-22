@@ -1,0 +1,91 @@
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>CronWatch — Signal</title>
+<style>
+  :root{--bg:#0f1115;--card:#191c23;--line:#2a2f3a;--fg:#e6e8ec;--mut:#8b93a1;--ok:#3fb950;--brand:#fee500}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.6 system-ui,Segoe UI,sans-serif}
+  .wrap{max-width:760px;margin:0 auto;padding:24px}
+  h1{font-size:18px;margin:0 0 4px}.mut{color:var(--mut)}
+  .gate{display:flex;gap:8px;margin:16px 0}
+  input{flex:1;padding:10px 12px;background:#0f1115;border:1px solid var(--line);border-radius:8px;color:var(--fg)}
+  button{padding:10px 16px;background:var(--brand);color:#191600;border:0;border-radius:8px;font-weight:700;cursor:pointer}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+  .c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center}
+  .c .v{font-size:26px;font-weight:800}.c .l{color:var(--mut);font-size:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);font-size:13px}
+  th{color:var(--mut);font-size:12px}
+  .err{color:#f85149;margin:8px 0}.hide{display:none}
+  code{background:#0f1115;border:1px solid var(--line);padding:1px 6px;border-radius:5px}
+</style>
+
+<div class="wrap">
+  <h1>CronWatch — 검증 신호</h1>
+  <div class="mut">대기자·전환·채널 출처. 본인 전용(토큰 필요).</div>
+
+  <div class="gate" id="gate">
+    <input type="password" id="token" placeholder="ADMIN_TOKEN" autocomplete="off" />
+    <button id="go">보기</button>
+  </div>
+  <div class="err hide" id="err"></div>
+
+  <div id="panel" class="hide">
+    <div class="cards">
+      <div class="c"><div class="v" id="views">–</div><div class="l">방문(rough)</div></div>
+      <div class="c"><div class="v" id="signups">–</div><div class="l">가입</div></div>
+      <div class="c"><div class="v" id="conv">–</div><div class="l">전환율</div></div>
+    </div>
+    <div class="card">
+      <strong>채널별 가입</strong>
+      <table><thead><tr><th>출처(ref:form)</th><th>가입</th></tr></thead><tbody id="channels"></tbody></table>
+    </div>
+    <div class="card">
+      <strong>최근 가입 (이메일 마스킹)</strong>
+      <table><thead><tr><th>이메일</th><th>출처</th><th>시각</th></tr></thead><tbody id="recent"></tbody></table>
+      <div class="mut" id="empty"></div>
+    </div>
+    <div class="mut">판단: <code>RUNBOOK.md</code> — 인터뷰서 "과거 실제 고생/지출" 반복이면 강신호.</div>
+  </div>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const fmt = (ms) => new Date(ms).toLocaleString();
+
+async function load(token){
+  const err = $('#err');
+  try{
+    const res = await fetch('/api/admin/signal', { headers: { 'x-admin-token': token } });
+    if(res.status === 401){ err.textContent = '토큰이 틀렸습니다.'; err.classList.remove('hide'); return false; }
+    if(res.status === 404){ err.textContent = '관리자 기능 비활성(ADMIN_TOKEN 미설정).'; err.classList.remove('hide'); return false; }
+    if(!res.ok){ err.textContent = '오류: ' + res.status; err.classList.remove('hide'); return false; }
+    const d = await res.json();
+    err.classList.add('hide');
+    $('#gate').classList.add('hide');
+    $('#panel').classList.remove('hide');
+    $('#views').textContent = d.views;
+    $('#signups').textContent = d.signups;
+    $('#conv').textContent = (d.conversion*100).toFixed(1) + '%';
+    $('#channels').innerHTML = d.by_channel.length
+      ? d.by_channel.map(c => `<tr><td>${esc(c.source)}</td><td>${c.n}</td></tr>`).join('')
+      : '<tr><td class="mut" colspan="2">아직 없음</td></tr>';
+    $('#recent').innerHTML = d.recent.map(r => `<tr><td>${esc(r.email)}</td><td>${esc(r.source||'')}</td><td>${fmt(r.created_at)}</td></tr>`).join('');
+    $('#empty').textContent = d.recent.length ? '' : '아직 가입 없음.';
+    return true;
+  }catch{ err.textContent = '네트워크 오류.'; err.classList.remove('hide'); return false; }
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+
+$('#go').addEventListener('click', async ()=>{
+  const t = $('#token').value.trim();
+  if(!t) return;
+  if(await load(t)) sessionStorage.setItem('cw_token', t);
+});
+$('#token').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#go').click(); });
+
+const saved = sessionStorage.getItem('cw_token');
+if(saved) load(saved);
+</script>
