@@ -15,7 +15,10 @@ process.env.PORT = '3999';
 process.env.BASE_URL = 'http://localhost:3999';
 process.env.WORKER_INTERVAL_SECONDS = '1';
 process.env.ADMIN_TOKEN = 'smoke-admin-token';
-process.env.SIGNUP_ALERT_WEBHOOK = 'http://localhost:3998/hook';
+// Telegram owner-alert path pointed at a local capture server.
+process.env.TELEGRAM_BOT_TOKEN = 'smoketoken';
+process.env.TELEGRAM_CHAT_ID = '12345';
+process.env.TELEGRAM_API_BASE = 'http://localhost:3998';
 for (const f of [TEST_DB, TEST_DB + '-wal', TEST_DB + '-shm']) { try { fs.unlinkSync(f); } catch {} }
 
 const { start } = require('../src/server');
@@ -129,12 +132,13 @@ const base = process.env.BASE_URL;
     assert.ok(!sig.recent.some((r) => r.email === 'tester@example.com'), 'no raw email leaked');
     console.log('  ✓ admin signal (auth + masking)');
 
-    // 11. owner signup alert (fire-and-forget → small settle delay)
+    // 11. owner signup alert via Telegram path (fire-and-forget → settle delay)
     await sleep(400);
     assert.ok(captured.length >= 1, 'owner alert fired on new signup');
+    assert.strictEqual(captured[0].chat_id, '12345', 'telegram chat_id sent');
     assert.match(captured[0].text, /새 대기자/, 'alert text shape');
-    assert.ok(!/[^*@]+@example\.com/.test(captured[0].text.split('·')[0]) || captured[0].text.includes('*'), 'email masked in alert');
-    console.log(`  ✓ owner signup alert (${captured.length} captured)`);
+    assert.ok(captured[0].text.includes('*'), 'email masked in alert');
+    console.log(`  ✓ owner signup alert via telegram (${captured.length} captured)`);
 
     console.log('\nSMOKE PASS ✅');
     server.close(); capSrv.close();

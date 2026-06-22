@@ -58,11 +58,17 @@ async function alert(check, state) {
   }
 }
 
-// Owner ping (e.g. new signup). Fires to SIGNUP_ALERT_WEBHOOK if configured.
-// { text } format suits KakaoWork incoming webhooks (and Slack).
+// Owner ping (e.g. new signup). Telegram if configured, else a {text} webhook
+// (KakaoWork/Slack). No-op when neither is set.
 async function notifyOwner(text) {
-  if (!config.SIGNUP_ALERT_WEBHOOK) return false;
-  return fireWebhook(config.SIGNUP_ALERT_WEBHOOK, { text });
+  if (config.TELEGRAM_BOT_TOKEN && config.TELEGRAM_CHAT_ID) {
+    const url = `${config.TELEGRAM_API_BASE}/bot${config.TELEGRAM_BOT_TOKEN}/sendMessage`;
+    return fireWebhook(url, { chat_id: config.TELEGRAM_CHAT_ID, text });
+  }
+  if (config.SIGNUP_ALERT_WEBHOOK) {
+    return fireWebhook(config.SIGNUP_ALERT_WEBHOOK, { text });
+  }
+  return false;
 }
 
 module.exports = { alert, isKakaoWork, kakaoworkText, notifyOwner };

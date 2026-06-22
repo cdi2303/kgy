@@ -24,7 +24,12 @@ module.exports = {
   // admin endpoint 404s entirely. Secret — set via env, never hardcode.
   ADMIN_TOKEN: process.env.ADMIN_TOKEN || '',
 
-  // Optional: webhook the owner gets pinged on for each new signup (KakaoWork
-  // incoming webhook, or any {text}-style webhook). Unset = no owner alerts.
+  // Optional owner signup alerts. Two channels (Telegram takes precedence):
+  //  - Telegram: set TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID
+  //  - any {text} webhook (KakaoWork/Slack): set SIGNUP_ALERT_WEBHOOK
+  // All unset = no owner alerts.
   SIGNUP_ALERT_WEBHOOK: process.env.SIGNUP_ALERT_WEBHOOK || '',
+  TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '',
+  TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID || '',
+  TELEGRAM_API_BASE: process.env.TELEGRAM_API_BASE || 'https://api.telegram.org',
 };
