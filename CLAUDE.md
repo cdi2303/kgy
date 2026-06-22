@@ -112,7 +112,9 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 - **플랜 한도**: free 3 / pro 20 / team 무제한 (`routes/checks.js` PLAN_LIMITS). 초과 시 402.
 - **대시보드**: `/app` = 로그인/회원가입 게이트 + 유저별 체크. 비로그인 시 인증화면.
 - **SSRF 가드**: `src/ssrf.js` — 유저 webhook_url을 사설/루프백/링크로컬/메타데이터로 못 쏘게 차단(`notify.fireUserWebhook`, redirect:manual). owner 알림(env, 신뢰)은 `fireWebhook` 직접. smoke 검증.
-- **남음**: 이메일(SMTP, 빌드 가능), 알림톡(Solapi — **카카오 템플릿 승인 후** 의미), 결제(PG 가맹키 후). LANDING_ONLY는 아직 true(노출은 이메일까지 끝내고 결정).
+- **이메일 알림(SMTP)**: `notify.sendEmail`/`emailEnabled`. 체크 down/up 시 owner 이메일 발송. `SMTP_HOST/PORT/USER/PASS/FROM` env. 미설정=무동작. `SMTP_HOST='json'`=테스트(jsonTransport). nodemailer 의존성.
+- **product 노출**: 랜딩 nav에 `/app` 로그인 링크. 프로덕션 `LANDING_ONLY` 플립 시 풀 제품(인증+감시+이메일) 공개 — SSRF 가드 있어 안전.
+- **남은 외부게이트**: 알림톡(Solapi키+**카카오 템플릿 심사**), 결제(PG 가맹키). 둘 다 네 사업자/계약 필요 — 키/승인 들어오면 빌드.
 
 ## CI
 - GitHub Actions(`.github/workflows/ci.yml`): push(main)/PR마다 Node 20 + `npm ci` + `npm run smoke`. 초록 유지.

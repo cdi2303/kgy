@@ -19,6 +19,8 @@ process.env.ADMIN_TOKEN = 'smoke-admin-token';
 process.env.TELEGRAM_BOT_TOKEN = 'smoketoken';
 process.env.TELEGRAM_CHAT_ID = '12345';
 process.env.TELEGRAM_API_BASE = 'http://localhost:3998';
+process.env.SMTP_HOST = 'json'; // nodemailer jsonTransport (no real send)
+process.env.SMTP_FROM = 'CronWatch <test@cronwatch.test>';
 for (const f of [TEST_DB, TEST_DB + '-wal', TEST_DB + '-shm']) { try { fs.unlinkSync(f); } catch {} }
 
 const { start } = require('../src/server');
@@ -176,6 +178,14 @@ const base = process.env.BASE_URL;
     }
     await assertPublicUrl('https://8.8.8.8/'); // public IP literal allowed
     console.log('  ✓ ssrf guard (private/metadata blocked, public allowed)');
+
+    // 14. email channel (json transport — composes without sending)
+    assert.ok(notify.emailEnabled(), 'email enabled');
+    const info = await notify.sendEmail('owner@test', '⛔ [job] 다운', '본문');
+    assert.ok(info && info.message, 'email composed');
+    const msg = info.message.toString();
+    assert.ok(msg.includes('owner@test') && msg.includes('job'), 'email has recipient+subject');
+    console.log('  ✓ email channel (composed via SMTP json transport)');
 
     console.log('\nSMOKE PASS ✅');
     server.close(); capSrv.close();

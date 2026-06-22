@@ -1,7 +1,40 @@
 'use strict';
 
 const config = require('./config');
+const db = require('./db');
 const { assertPublicUrl } = require('./ssrf');
+const nodemailer = require('nodemailer');
+
+// Lazy SMTP transport. SMTP_HOST='json' = jsonTransport (no real send, tests).
+let _transport;
+function transport() {
+  if (_transport !== undefined) return _transport;
+  if (!config.SMTP_HOST) { _transport = null; return null; }
+  _transport = config.SMTP_HOST === 'json'
+    ? nodemailer.createTransport({ jsonTransport: true })
+    : nodemailer.createTransport({
+        host: config.SMTP_HOST,
+        port: config.SMTP_PORT,
+        secure: config.SMTP_PORT === 465,
+        auth: config.SMTP_USER ? { user: config.SMTP_USER, pass: config.SMTP_PASS } : undefined,
+      });
+  return _transport;
+}
+
+function emailEnabled() {
+  return !!config.SMTP_HOST;
+}
+
+async function sendEmail(to, subject, text) {
+  const t = transport();
+  if (!t) return false;
+  try {
+    return await t.sendMail({ from: config.SMTP_FROM, to, subject, text });
+  } catch (err) {
+    console.error(`[notify] email failed to ${to}: ${err.message}`);
+    return false;
+  }
+}
 
 // Alert delivery. PoC: log to console + optional per-check webhook (POST JSON).
 // If the webhook URL is a KakaoWork incoming webhook, send its expected
@@ -71,6 +104,20 @@ async function alert(check, state) {
         };
     await fireUserWebhook(check.webhook_url, payload);
   }
+
+  // Email the check's owner (if SMTP configured and the check has one).
+  if (emailEnabled() && check.user_id) {
+    const owner = db.getUserById(check.user_id);
+    if (owner) {
+      const subject = state === 'down'
+        ? `⛔ [${check.name}] 모니터 다운`
+        : `✅ [${check.name}] 복구됨`;
+      const body = state === 'down'
+        ? `"${check.name}" 작업의 신호가 끊겼습니다. 배치/크론을 점검하세요.\n\n${config.BASE_URL}/app`
+        : `"${check.name}" 작업이 정상 복구되었습니다.\n\n${config.BASE_URL}/app`;
+      await sendEmail(owner.email, subject, body);
+    }
+  }
 }
 
 // Owner ping (e.g. new signup). Telegram if configured, else a {text} webhook
@@ -86,4 +133,4 @@ async function notifyOwner(text) {
   return false;
 }
 
-module.exports = { alert, isKakaoWork, kakaoworkText, notifyOwner };
+module.exports = { alert, isKakaoWork, kakaoworkText, notifyOwner, sendEmail, emailEnabled };
