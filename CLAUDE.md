@@ -100,7 +100,7 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 - waitlist/stats = **0으로 초기화됨(2026-06-22)**, 깨끗한 출시 상태. (검증 중 쌓인 테스트 데이터는 볼륨 재생성으로 제거.)
 - 프로덕션 데이터 wipe 방법: `railway volume delete --volume cronwatch-volume --yes` → `MSYS_NO_PATHCONV=1 railway volume add --mount-path /data` → `railway up --detach`. (볼륨 *파일* 단위 접근/`railway ssh`는 SSH 키 등록 필요 — 대시보드에서.)
 
-**Stage 1 자산:** `GTM.md`(채널·포스트·검증질문·Go/No-Go, 근거 기반), `ALIMTALK.md`(카톡 발송 기술검토).
+**Stage 1 자산:** `GTM.md`(채널·포스트·검증질문·Go/No-Go), `RUNBOOK.md`(시나리오별 행동 트리), `ALIMTALK.md`(카톡 발송 기술검토).
 **다음 (ROADMAP Stage 1 잔여 — 코드 아님):** 트래픽 유입(GTM.md, 게시는 본인) → 검증 인터뷰 → 신호 확인 후 Stage 2.
 **Stage 2 핵심 변수:** 알림톡 정보성 심사 통과 여부(ALIMTALK.md). 코드보다 심사 검증 먼저.
 
