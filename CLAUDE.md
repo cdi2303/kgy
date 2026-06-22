@@ -111,7 +111,8 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 - **멀티테넌시**: checks에 `user_id`, 모든 check 쿼리 유저 스코프. `/api/checks`는 `requireAuth` 뒤. 교차 테넌트 차단(smoke 검증).
 - **플랜 한도**: free 3 / pro 20 / team 무제한 (`routes/checks.js` PLAN_LIMITS). 초과 시 402.
 - **대시보드**: `/app` = 로그인/회원가입 게이트 + 유저별 체크. 비로그인 시 인증화면.
-- **남음(스캐폴드 예정)**: webhook_url SSRF 가드(프로덕션 노출 전 필수), 이메일(SMTP), 알림톡(Solapi+심사), 결제(PG키). LANDING_ONLY는 아직 true 유지(SSRF 가드 전 product 미노출).
+- **SSRF 가드**: `src/ssrf.js` — 유저 webhook_url을 사설/루프백/링크로컬/메타데이터로 못 쏘게 차단(`notify.fireUserWebhook`, redirect:manual). owner 알림(env, 신뢰)은 `fireWebhook` 직접. smoke 검증.
+- **남음**: 이메일(SMTP, 빌드 가능), 알림톡(Solapi — **카카오 템플릿 승인 후** 의미), 결제(PG 가맹키 후). LANDING_ONLY는 아직 true(노출은 이메일까지 끝내고 결정).
 
 ## CI
 - GitHub Actions(`.github/workflows/ci.yml`): push(main)/PR마다 Node 20 + `npm ci` + `npm run smoke`. 초록 유지.

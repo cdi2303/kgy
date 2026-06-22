@@ -1,6 +1,7 @@
 'use strict';
 
 const config = require('./config');
+const { assertPublicUrl } = require('./ssrf');
 
 // Alert delivery. PoC: log to console + optional per-check webhook (POST JSON).
 // If the webhook URL is a KakaoWork incoming webhook, send its expected
@@ -30,6 +31,7 @@ async function fireWebhook(url, payload) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      redirect: 'manual', // don't let a 30x bounce us to an internal host
       signal: AbortSignal.timeout(5000),
     });
     return res.ok;
@@ -37,6 +39,19 @@ async function fireWebhook(url, payload) {
     console.error(`[notify] webhook failed for ${url}: ${err.message}`);
     return false;
   }
+}
+
+// For USER-supplied webhook URLs (check.webhook_url): SSRF-guard first.
+// Owner-config URLs (Telegram/SIGNUP_ALERT_WEBHOOK) are operator-trusted and
+// use fireWebhook directly.
+async function fireUserWebhook(url, payload) {
+  try {
+    await assertPublicUrl(url);
+  } catch (err) {
+    console.error(`[notify] blocked user webhook ${url}: ${err.message}`);
+    return false;
+  }
+  return fireWebhook(url, payload);
 }
 
 // state: 'down' | 'up' (recovery)
@@ -54,7 +69,7 @@ async function alert(check, state) {
           status: state,
           at: new Date().toISOString(),
         };
-    await fireWebhook(check.webhook_url, payload);
+    await fireUserWebhook(check.webhook_url, payload);
   }
 }
 

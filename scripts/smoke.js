@@ -23,6 +23,7 @@ for (const f of [TEST_DB, TEST_DB + '-wal', TEST_DB + '-shm']) { try { fs.unlink
 
 const { start } = require('../src/server');
 const notify = require('../src/notify');
+const { assertPublicUrl } = require('../src/ssrf');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const j = (res) => res.json();
@@ -165,6 +166,16 @@ const base = process.env.BASE_URL;
     const ownList = await j(await fetch(`${base}/api/checks`, { headers: { Cookie: cookie2 } }));
     assert.strictEqual(ownList.length, 0, 'new user sees no checks');
     console.log('  ✓ multitenancy (cross-tenant 404, isolated list)');
+
+    // 13. SSRF guard on user webhook URLs
+    const blocked = ['http://169.254.169.254/latest/meta-data/', 'http://127.0.0.1/', 'http://10.1.2.3/', 'ftp://x/'];
+    for (const u of blocked) {
+      let threw = false;
+      try { await assertPublicUrl(u); } catch { threw = true; }
+      assert.ok(threw, `blocked: ${u}`);
+    }
+    await assertPublicUrl('https://8.8.8.8/'); // public IP literal allowed
+    console.log('  ✓ ssrf guard (private/metadata blocked, public allowed)');
 
     console.log('\nSMOKE PASS ✅');
     server.close(); capSrv.close();
