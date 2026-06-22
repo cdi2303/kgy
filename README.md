@@ -1,5 +1,7 @@
 # CronWatch
 
+[![CI](https://github.com/cdi2303/kgy/actions/workflows/ci.yml/badge.svg)](https://github.com/cdi2303/kgy/actions/workflows/ci.yml)
+
 크론잡/배치 작업 생사 감시 (dead man's switch). 작업이 정해진 주기에 ping을 안 보내면 죽은 것으로 보고 알림.
 
 > PoC. 사업 배경·로드맵은 `CLAUDE.md` / `ROADMAP.md` 참고.
