@@ -97,9 +97,20 @@ HN·Reddit 등 영어권은 카톡 가치가 안 통하고, 거기선 Healthchec
 
 ---
 
+## 4-1. 채널별 추적 링크 (게시 시 이거 써라)
+
+각 채널에 `?ref=`를 붙여 올리면 `/api/stats` 없이도 가입 `source`로 어느 채널이 전환됐는지 보임.
+
+- GeekNews: `https://cronwatch-production.up.railway.app/?ref=geeknews`
+- OKKY: `…/?ref=okky`
+- 디스코드/오픈채팅: `…/?ref=discord`
+- 트위터/X: `…/?ref=x`
+
+(미지정 시 `direct`로 기록. `utm_source`도 동일하게 인식.)
+
 ## 5. 다음 액션 체크리스트
 
-- [ ] 포스트 본인 목소리로 다듬기
+- [ ] 포스트 본인 목소리로 다듬기 + 채널별 `?ref=` 링크 사용
 - [ ] 화~목 오전 한국시간 게시 (GeekNews 1곳부터, 반응 보고 확장)
 - [ ] 게시 직후 1시간 댓글 응대
 - [ ] 가입자에게 인터뷰 요청(위 5질문)

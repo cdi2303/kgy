@@ -184,6 +184,11 @@
 </footer>
 
 <script>
+// Channel attribution: links shared as ?ref=geeknews (or ?utm_source=...) let
+// us see which channel converts. Recorded into the signup's `source`.
+const _p = new URLSearchParams(location.search);
+const REF = (_p.get('ref') || _p.get('utm_source') || 'direct').slice(0, 40);
+
 async function refreshCount(){
   try{
     const {count} = await (await fetch('/api/waitlist/count')).json();
@@ -203,7 +208,7 @@ function wire(formId, emailId, noteId){
     try{
       const res = await fetch('/api/waitlist',{
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ email, source: formId })
+        body: JSON.stringify({ email, source: `${REF}:${formId}` })
       });
       const data = await res.json();
       if(res.ok){

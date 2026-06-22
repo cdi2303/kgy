@@ -95,6 +95,18 @@ const base = process.env.BASE_URL;
     assert.ok(stats.conversion > 0, 'conversion computed');
     console.log('  ✓ stats:', JSON.stringify(stats));
 
+    // 9. waitlist rate limit (max 10 / IP) — keep POSTing until a 429 appears
+    let saw429 = false;
+    for (let k = 0; k < 14; k++) {
+      const r = await fetch(`${base}/api/waitlist`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: `rl${k}@example.com` }),
+      });
+      if (r.status === 429) { saw429 = true; break; }
+    }
+    assert.ok(saw429, 'rate limit returns 429 past the cap');
+    console.log('  ✓ waitlist rate limit (429 enforced)');
+
     console.log('\nSMOKE PASS ✅');
     server.close();
     process.exit(0);

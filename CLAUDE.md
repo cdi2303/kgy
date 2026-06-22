@@ -85,6 +85,8 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 - **라우팅**: `/` = 랜딩(대기자 수집), `/app` = 대시보드
 - **랜딩 + 대기자 수집**: `public/landing.html`(OG/트위터 메타+파비콘=공유 미리보기) + `/api/waitlist`(POST 등록/dedupe, GET /count)
 - **검증 지표**: 랜딩 GET마다 `landing_views` 카운트, `GET /api/stats` → {views, signups, conversion}. PII·외부추적기 없음. (봇/새로고침 포함 rough)
+- **채널 출처**: 랜딩 `?ref=`/`utm_source` → 가입 `source`에 `{ref}:{form}` 기록. 채널별 링크는 `GTM.md §4-1`.
+- **레이트리밋**: `POST /api/waitlist` IP당 10건/10분(`src/ratelimit.js`, 인메모리·단일인스턴스). 검증 데이터 스팸 보호.
 - **`LANDING_ONLY=true`**: 프로덕션 배포용. 랜딩+waitlist만 노출, checks/ping/`/app`/워커 차단(미인증 API·SSRF 표면 제거). 로컬은 미설정=풀앱. 배포는 `DEPLOY.md`(Railway) 참고.
 
 **아직 없음 (의도적 — 범위 밖):** 인증/멀티테넌시, 이메일·Slack·**카톡** 실제 발송, 결제, 알림 중복억제 정교화, 배포.
