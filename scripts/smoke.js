@@ -87,6 +87,14 @@ const base = process.env.BASE_URL;
     assert.match(notify.kakaoworkText({ name: 'backup' }, 'up'), /정상 복구/, 'up text');
     console.log('  ✓ kakaowork adapter (detect + spoof-reject + text)');
 
+    // 8. landing views + stats (conversion denominator)
+    await fetch(`${base}/`); await fetch(`${base}/`);
+    const stats = await j(await fetch(`${base}/api/stats`));
+    assert.ok(stats.landing_views >= 2, 'landing views counted');
+    assert.strictEqual(stats.signups, 1, 'signups in stats');
+    assert.ok(stats.conversion > 0, 'conversion computed');
+    console.log('  ✓ stats:', JSON.stringify(stats));
+
     console.log('\nSMOKE PASS ✅');
     server.close();
     process.exit(0);

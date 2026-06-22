@@ -7,13 +7,23 @@ const path = require('path');
 const express = require('express');
 const config = require('./config');
 const worker = require('./worker');
+const db = require('./db');
 
 const app = express();
 app.use(express.json());
 
 // Always public: landing page + waitlist (Stage 1 market validation).
 app.use('/api/waitlist', require('./routes/waitlist'));
-app.get('/', (req, res) => res.sendFile(path.join(config.ROOT, 'public', 'landing.html')));
+app.get('/', (req, res) => {
+  db.bumpStat('landing_views'); // rough denominator for conversion (incl. bots)
+  res.sendFile(path.join(config.ROOT, 'public', 'landing.html'));
+});
+// Validation metrics: views vs signups. Numbers only, no PII.
+app.get('/api/stats', (req, res) => {
+  const views = db.statValue('landing_views');
+  const signups = db.waitlistCount();
+  res.json({ landing_views: views, signups, conversion: views ? +(signups / views).toFixed(4) : 0 });
+});
 app.use(express.static(path.join(config.ROOT, 'public')));
 app.get('/health', (req, res) => res.json({ ok: true }));
 

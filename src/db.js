@@ -46,6 +46,13 @@ db.exec(`
     source      TEXT,
     created_at  INTEGER NOT NULL
   );
+
+  -- Simple named counters (e.g. landing_views) for conversion measurement.
+  -- No PII, no external tracker — just a denominator for the go/no-go call.
+  CREATE TABLE IF NOT EXISTS stats (
+    key  TEXT PRIMARY KEY,
+    n    INTEGER NOT NULL DEFAULT 0
+  );
 `);
 
 const now = () => Date.now();
@@ -73,6 +80,8 @@ const stmt = {
   recentEvents: db.prepare(`SELECT * FROM events WHERE check_id = ? ORDER BY received_at DESC LIMIT ?`),
   insertWaitlist: db.prepare(`INSERT OR IGNORE INTO waitlist (id, email, source, created_at) VALUES (@id, @email, @source, @created_at)`),
   countWaitlist: db.prepare(`SELECT COUNT(*) AS n FROM waitlist`),
+  bumpStat: db.prepare(`INSERT INTO stats (key, n) VALUES (?, 1) ON CONFLICT(key) DO UPDATE SET n = n + 1`),
+  getStat: db.prepare(`SELECT n FROM stats WHERE key = ?`),
 };
 
 module.exports = {
@@ -118,4 +127,7 @@ module.exports = {
   },
 
   waitlistCount: () => stmt.countWaitlist.get().n,
+
+  bumpStat: (key) => stmt.bumpStat.run(key),
+  statValue: (key) => (stmt.getStat.get(key) || { n: 0 }).n,
 };
