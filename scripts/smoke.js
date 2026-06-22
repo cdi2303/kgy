@@ -39,9 +39,23 @@ const base = process.env.BASE_URL;
   const server = start();
   await sleep(300);
   try {
+    // 0. auth: checks API requires login now
+    const unauth = await fetch(`${base}/api/checks`);
+    assert.strictEqual(unauth.status, 401, 'checks require auth');
+    const reg = await fetch(`${base}/api/auth/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'smoke@user.test', password: 'password123' }),
+    });
+    assert.strictEqual(reg.status, 201, 'register ok');
+    const cookie = (reg.headers.get('set-cookie') || '').split(';')[0];
+    assert.ok(cookie.startsWith('cw_session='), 'session cookie set');
+    const AJ = { 'Content-Type': 'application/json', Cookie: cookie };
+    const A = { Cookie: cookie };
+    console.log('  ✓ register + session');
+
     // 1. create a check: period 1s, grace 1s
     const created = await j(await fetch(`${base}/api/checks`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: AJ,
       body: JSON.stringify({ name: 'smoke-job', period_seconds: 1, grace_seconds: 1 }),
     }));
     assert.ok(created.id, 'check created');
@@ -50,19 +64,19 @@ const base = process.env.BASE_URL;
 
     // 2. ping -> up
     await fetch(created.ping_url);
-    let detail = await j(await fetch(`${base}/api/checks/${created.id}`));
+    let detail = await j(await fetch(`${base}/api/checks/${created.id}`, { headers: A }));
     assert.strictEqual(detail.status, 'up', 'up after ping');
     console.log('  ✓ ping -> up');
 
     // 3. stop pinging; wait past period+grace+worker tick -> down
     await sleep(4000);
-    detail = await j(await fetch(`${base}/api/checks/${created.id}`));
+    detail = await j(await fetch(`${base}/api/checks/${created.id}`, { headers: A }));
     assert.strictEqual(detail.status, 'down', 'down after overdue');
     console.log('  ✓ overdue -> down');
 
     // 4. ping again -> recovery (up)
     await fetch(created.ping_url);
-    detail = await j(await fetch(`${base}/api/checks/${created.id}`));
+    detail = await j(await fetch(`${base}/api/checks/${created.id}`, { headers: A }));
     assert.strictEqual(detail.status, 'up', 'recovered to up');
     console.log('  ✓ recovery -> up');
 
@@ -139,6 +153,18 @@ const base = process.env.BASE_URL;
     assert.match(captured[0].text, /새 대기자/, 'alert text shape');
     assert.ok(captured[0].text.includes('*'), 'email masked in alert');
     console.log(`  ✓ owner signup alert via telegram (${captured.length} captured)`);
+
+    // 12. multitenancy: a second user cannot see the first user's check
+    const reg2 = await fetch(`${base}/api/auth/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'smoke2@user.test', password: 'password123' }),
+    });
+    const cookie2 = (reg2.headers.get('set-cookie') || '').split(';')[0];
+    const cross = await fetch(`${base}/api/checks/${created.id}`, { headers: { Cookie: cookie2 } });
+    assert.strictEqual(cross.status, 404, 'cross-tenant check hidden');
+    const ownList = await j(await fetch(`${base}/api/checks`, { headers: { Cookie: cookie2 } }));
+    assert.strictEqual(ownList.length, 0, 'new user sees no checks');
+    console.log('  ✓ multitenancy (cross-tenant 404, isolated list)');
 
     console.log('\nSMOKE PASS ✅');
     server.close(); capSrv.close();

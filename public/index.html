@@ -1,19 +1,20 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CronWatch — PoC</title>
+<title>CronWatch — Dashboard</title>
 <style>
-  :root { --bg:#0f1115; --card:#191c23; --line:#2a2f3a; --fg:#e6e8ec; --mut:#8b93a1; --up:#3fb950; --down:#f85149; --new:#d29922; --pause:#6e7681; }
+  :root { --bg:#0f1115; --card:#191c23; --line:#2a2f3a; --fg:#e6e8ec; --mut:#8b93a1; --up:#3fb950; --down:#f85149; --new:#d29922; --pause:#6e7681; --brand:#2563eb; }
   * { box-sizing: border-box; }
   body { margin:0; font:14px/1.5 system-ui,Segoe UI,sans-serif; background:var(--bg); color:var(--fg); }
-  header { padding:20px 24px; border-bottom:1px solid var(--line); display:flex; align-items:baseline; gap:12px; }
+  header { padding:18px 24px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; }
   h1 { font-size:18px; margin:0; }
+  h1 b { color:#fee500; }
   .mut { color:var(--mut); }
   main { padding:24px; max-width:980px; margin:0 auto; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
-  form { display:grid; grid-template-columns:1fr 130px 130px 1fr auto; gap:10px; align-items:end; }
+  form#createForm { display:grid; grid-template-columns:1fr 120px 120px 1fr auto; gap:10px; align-items:end; }
   label { display:block; font-size:12px; color:var(--mut); margin-bottom:4px; }
   input { width:100%; padding:8px 10px; background:#0f1115; border:1px solid var(--line); border-radius:6px; color:var(--fg); }
-  button { padding:8px 14px; background:#2563eb; color:#fff; border:0; border-radius:6px; cursor:pointer; font-weight:600; }
+  button { padding:8px 14px; background:var(--brand); color:#fff; border:0; border-radius:6px; cursor:pointer; font-weight:600; }
   button.ghost { background:transparent; border:1px solid var(--line); color:var(--mut); font-weight:400; padding:4px 10px; }
   table { width:100%; border-collapse:collapse; }
   th,td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
@@ -23,28 +24,54 @@
   .s-new{background:rgba(210,153,34,.15);color:var(--new)} .s-paused{background:rgba(110,118,129,.15);color:var(--pause)}
   code { background:#0f1115; padding:2px 6px; border-radius:5px; font-size:12px; word-break:break-all; }
   .row-actions { display:flex; gap:6px; }
-  @media(max-width:760px){ form{grid-template-columns:1fr 1fr} }
+  .hide { display:none; }
+  /* auth */
+  .auth-wrap { max-width:380px; margin:8vh auto; }
+  .tabs { display:flex; gap:8px; margin-bottom:14px; }
+  .tabs button { flex:1; background:transparent; border:1px solid var(--line); color:var(--mut); }
+  .tabs button.active { background:var(--brand); color:#fff; border-color:var(--brand); }
+  .auth-wrap form { display:grid; gap:10px; }
+  .auth-wrap button[type=submit] { width:100%; }
+  .err { color:var(--down); font-size:13px; min-height:18px; }
+  @media(max-width:760px){ form#createForm{grid-template-columns:1fr 1fr} }
 </style>
 
 <header>
-  <h1>CronWatch</h1>
-  <span class="mut">cron/batch dead man's switch — PoC</span>
+  <h1>Cron<b>Watch</b> <span class="mut" style="font-size:13px">Dashboard</span></h1>
+  <div id="userbox" class="hide"><span class="mut" id="userEmail"></span> <button class="ghost" id="logout">로그아웃</button></div>
 </header>
 
-<main>
+<!-- AUTH -->
+<div id="authView" class="auth-wrap hide">
   <div class="card">
-    <form id="createForm">
-      <div><label>Name</label><input name="name" placeholder="nightly-backup" required></div>
-      <div><label>Period (sec)</label><input name="period_seconds" type="number" value="60" min="1" required></div>
-      <div><label>Grace (sec)</label><input name="grace_seconds" type="number" value="30" min="0"></div>
-      <div><label>Webhook URL (optional)</label><input name="webhook_url" placeholder="https://hooks.slack..."></div>
-      <button type="submit">Add check</button>
+    <div class="tabs">
+      <button id="tabLogin" class="active">로그인</button>
+      <button id="tabReg">회원가입</button>
+    </div>
+    <form id="authForm">
+      <div><label>이메일</label><input type="email" id="aEmail" required autocomplete="email"></div>
+      <div><label>비밀번호 <span class="mut" id="pwHint"></span></label><input type="password" id="aPass" required autocomplete="current-password"></div>
+      <button type="submit" id="authSubmit">로그인</button>
+      <div class="err" id="authErr"></div>
     </form>
   </div>
+</div>
 
+<!-- APP -->
+<main id="appView" class="hide">
+  <div class="card">
+    <form id="createForm">
+      <div><label>이름</label><input name="name" placeholder="nightly-backup" required></div>
+      <div><label>주기(초)</label><input name="period_seconds" type="number" value="60" min="1" required></div>
+      <div><label>여유(초)</label><input name="grace_seconds" type="number" value="30" min="0"></div>
+      <div><label>Webhook URL (선택)</label><input name="webhook_url" placeholder="https://hooks.slack... / 카카오워크"></div>
+      <button type="submit">체크 추가</button>
+    </form>
+    <div class="err" id="createErr"></div>
+  </div>
   <div class="card">
     <table>
-      <thead><tr><th>Status</th><th>Name</th><th>Ping URL</th><th>Last ping</th><th>Period</th><th></th></tr></thead>
+      <thead><tr><th>상태</th><th>이름</th><th>Ping URL</th><th>마지막 ping</th><th>주기</th><th></th></tr></thead>
       <tbody id="rows"><tr><td colspan="6" class="mut">loading…</td></tr></tbody>
     </table>
   </div>
@@ -53,15 +80,47 @@
 <script>
 const $ = (s) => document.querySelector(s);
 const fmt = (ms) => ms ? new Date(ms).toLocaleString() : '—';
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 
+let mode = 'login';
+function show(view){ $('#authView').classList.toggle('hide', view!=='auth'); $('#appView').classList.toggle('hide', view!=='app'); $('#userbox').classList.toggle('hide', view!=='app'); }
+
+// ---- auth ----
+function setMode(m){
+  mode = m;
+  $('#tabLogin').classList.toggle('active', m==='login');
+  $('#tabReg').classList.toggle('active', m==='register');
+  $('#authSubmit').textContent = m==='login' ? '로그인' : '회원가입';
+  $('#pwHint').textContent = m==='register' ? '(8자 이상)' : '';
+  $('#authErr').textContent = '';
+}
+$('#tabLogin').onclick = () => setMode('login');
+$('#tabReg').onclick = () => setMode('register');
+
+$('#authForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = { email: $('#aEmail').value.trim(), password: $('#aPass').value };
+  const res = await fetch('/api/auth/' + (mode==='login'?'login':'register'), {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+  });
+  const d = await res.json().catch(()=>({}));
+  if (res.ok) { await boot(); }
+  else $('#authErr').textContent = d.error || '오류가 발생했습니다.';
+});
+
+$('#logout').onclick = async () => { await fetch('/api/auth/logout', {method:'POST'}); location.reload(); };
+
+// ---- dashboard ----
 async function load() {
-  const checks = await (await fetch('/api/checks')).json();
+  const res = await fetch('/api/checks');
+  if (res.status === 401) { show('auth'); return; }
+  const checks = await res.json();
   const rows = $('#rows');
-  if (!checks.length) { rows.innerHTML = '<tr><td colspan="6" class="mut">no checks yet</td></tr>'; return; }
+  if (!checks.length) { rows.innerHTML = '<tr><td colspan="6" class="mut">아직 체크가 없습니다</td></tr>'; return; }
   rows.innerHTML = checks.map(c => `
     <tr>
       <td><span class="pill s-${c.status}">${c.status}</span></td>
-      <td>${escapeHtml(c.name)}</td>
+      <td>${esc(c.name)}</td>
       <td><code>${c.ping_url}</code></td>
       <td>${fmt(c.last_ping_at)}</td>
       <td>${c.period_seconds}s +${c.grace_seconds}s</td>
@@ -74,11 +133,10 @@ async function load() {
     </tr>`).join('');
 }
 
-function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-
 $('#createForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const f = e.target;
+  $('#createErr').textContent = '';
   const body = {
     name: f.name.value.trim(),
     period_seconds: Number(f.period_seconds.value),
@@ -86,7 +144,7 @@ $('#createForm').addEventListener('submit', async (e) => {
     webhook_url: f.webhook_url.value.trim() || undefined,
   };
   const res = await fetch('/api/checks', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
-  if (!res.ok) { alert((await res.json()).error || 'error'); return; }
+  if (!res.ok) { $('#createErr').textContent = (await res.json()).error || 'error'; return; }
   f.reset(); f.period_seconds.value = 60; f.grace_seconds.value = 30;
   load();
 });
@@ -95,11 +153,21 @@ $('#rows').addEventListener('click', async (e) => {
   const btn = e.target.closest('button[data-act]');
   if (!btn) return;
   const { act, id } = btn.dataset;
-  if (act === 'delete') { if (!confirm('Delete this check?')) return; await fetch('/api/checks/'+id, {method:'DELETE'}); }
+  if (act === 'delete') { if (!confirm('이 체크를 삭제할까요?')) return; await fetch('/api/checks/'+id, {method:'DELETE'}); }
   else await fetch(`/api/checks/${id}/${act}`, {method:'POST'});
   load();
 });
 
-load();
-setInterval(load, 5000);
+// ---- boot ----
+let pollTimer = null;
+async function boot() {
+  const me = await fetch('/api/auth/me');
+  if (me.status === 401) { setMode('login'); show('auth'); if(pollTimer){clearInterval(pollTimer);pollTimer=null;} return; }
+  const { user } = await me.json();
+  $('#userEmail').textContent = user.email + ' · ' + user.plan;
+  show('app');
+  load();
+  if (!pollTimer) pollTimer = setInterval(load, 5000);
+}
+boot();
 </script>

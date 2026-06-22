@@ -106,6 +106,13 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 **다음 (ROADMAP Stage 1 잔여 — 코드 아님):** 트래픽 유입(GTM.md, 게시는 본인) → 검증 인터뷰 → 신호 확인 후 Stage 2.
 **Stage 2 핵심 변수:** 알림톡 정보성 심사 통과 여부(ALIMTALK.md). 코드보다 심사 검증 먼저.
 
+## Stage 2 (빌드 중 — 2026-06-22~)
+- **인증/세션**: `src/auth.js`(scrypt 해싱 + 쿠키 세션, DB-backed), `src/routes/auth.js`(register/login/logout/me). users·sessions 테이블.
+- **멀티테넌시**: checks에 `user_id`, 모든 check 쿼리 유저 스코프. `/api/checks`는 `requireAuth` 뒤. 교차 테넌트 차단(smoke 검증).
+- **플랜 한도**: free 3 / pro 20 / team 무제한 (`routes/checks.js` PLAN_LIMITS). 초과 시 402.
+- **대시보드**: `/app` = 로그인/회원가입 게이트 + 유저별 체크. 비로그인 시 인증화면.
+- **남음(스캐폴드 예정)**: webhook_url SSRF 가드(프로덕션 노출 전 필수), 이메일(SMTP), 알림톡(Solapi+심사), 결제(PG키). LANDING_ONLY는 아직 true 유지(SSRF 가드 전 product 미노출).
+
 ## CI
 - GitHub Actions(`.github/workflows/ci.yml`): push(main)/PR마다 Node 20 + `npm ci` + `npm run smoke`. 초록 유지.
 

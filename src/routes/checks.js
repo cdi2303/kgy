@@ -1,6 +1,8 @@
 'use strict';
 
 // CRUD API for monitors (checks). JSON in/out. Consumed by the dashboard.
+// All routes are user-scoped: mounted behind requireAuth, every query keys
+// on req.user.id so one account can never see/touch another's checks.
 
 const express = require('express');
 const db = require('../db');
@@ -8,21 +10,25 @@ const config = require('../config');
 
 const router = express.Router();
 
+// Per-plan check limits.
+const PLAN_LIMITS = { free: 3, pro: 20, team: Infinity };
+
 function pingUrl(check) {
   return `${config.BASE_URL}/ping/${check.ping_token}`;
 }
 
 function present(check) {
   if (!check) return null;
-  return { ...check, ping_url: pingUrl(check) };
+  const { user_id, ...rest } = check; // don't leak internal owner id
+  return { ...rest, ping_url: pingUrl(check) };
 }
 
-// List
+// List (own checks only)
 router.get('/', (req, res) => {
-  res.json(db.listChecks().map(present));
+  res.json(db.listChecks(req.user.id).map(present));
 });
 
-// Create
+// Create (enforces plan limit)
 router.post('/', (req, res) => {
   const { name, period_seconds, grace_seconds, webhook_url } = req.body || {};
 
@@ -45,39 +51,50 @@ router.post('/', (req, res) => {
     webhook = webhook_url;
   }
 
-  const check = db.createCheck({ name, period_seconds: period, grace_seconds: grace, webhook_url: webhook });
+  const limit = PLAN_LIMITS[req.user.plan] ?? PLAN_LIMITS.free;
+  if (db.countChecks(req.user.id) >= limit) {
+    return res.status(402).json({ error: `현재 플랜(${req.user.plan}) 한도(${limit}개)를 초과했습니다. 업그레이드가 필요합니다.` });
+  }
+
+  const check = db.createCheck({
+    user_id: req.user.id,
+    name,
+    period_seconds: period,
+    grace_seconds: grace,
+    webhook_url: webhook,
+  });
   res.status(201).json(present(check));
 });
 
 // Detail (+ recent events)
 router.get('/:id', (req, res) => {
-  const check = db.getCheck(req.params.id);
+  const check = db.getCheck(req.params.id, req.user.id);
   if (!check) return res.status(404).json({ error: 'not found' });
   res.json({ ...present(check), events: db.recentEvents(check.id, 20) });
 });
 
 // Pause / resume
 router.post('/:id/pause', (req, res) => {
-  const check = db.getCheck(req.params.id);
+  const check = db.getCheck(req.params.id, req.user.id);
   if (!check) return res.status(404).json({ error: 'not found' });
   db.setStatus(check.id, 'paused');
-  res.json(present(db.getCheck(check.id)));
+  res.json(present(db.getCheck(check.id, req.user.id)));
 });
 
 router.post('/:id/resume', (req, res) => {
-  const check = db.getCheck(req.params.id);
+  const check = db.getCheck(req.params.id, req.user.id);
   if (!check) return res.status(404).json({ error: 'not found' });
   // Resume = start watching from now: reset the clock so the deadline is
   // computed fresh, otherwise an old created_at would trip instantly.
   db.recordPing(check.id);
-  res.json(present(db.getCheck(check.id)));
+  res.json(present(db.getCheck(check.id, req.user.id)));
 });
 
 // Delete
 router.delete('/:id', (req, res) => {
-  const check = db.getCheck(req.params.id);
+  const check = db.getCheck(req.params.id, req.user.id);
   if (!check) return res.status(404).json({ error: 'not found' });
-  db.deleteCheck(check.id);
+  db.deleteCheck(check.id, req.user.id);
   res.json({ ok: true });
 });
 

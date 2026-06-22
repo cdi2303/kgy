@@ -8,9 +8,11 @@ const express = require('express');
 const config = require('./config');
 const worker = require('./worker');
 const db = require('./db');
+const auth = require('./auth');
 
 const app = express();
 app.use(express.json());
+app.use(auth.attachUser); // populates req.user from session cookie when present
 
 // Always public: landing page + waitlist (Stage 1 market validation).
 app.use('/api/waitlist', require('./routes/waitlist'));
@@ -33,8 +35,9 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 // Full product (dashboard + monitoring). Disabled in LANDING_ONLY mode so a
 // public Stage 1 deploy doesn't expose the unauthenticated checks API.
 if (!config.LANDING_ONLY) {
-  app.use('/api/checks', require('./routes/checks'));
-  app.use('/ping', require('./routes/ping')); // short URLs for cron scripts
+  app.use('/api/auth', require('./routes/auth'));
+  app.use('/api/checks', auth.requireAuth, require('./routes/checks')); // user-scoped
+  app.use('/ping', require('./routes/ping')); // unauth: cron calls by token
   app.get('/app', (req, res) => res.sendFile(path.join(config.ROOT, 'public', 'index.html')));
 }
 
