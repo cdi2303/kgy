@@ -7,12 +7,19 @@
 
 const express = require('express');
 const db = require('../db');
+const notify = require('../notify');
 const { rateLimit } = require('../ratelimit');
 
 const router = express.Router();
 
 // Conservative email shape check (not full RFC; good enough to reject junk).
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Mask the local part so the owner alert carries no full email (privacy).
+function maskEmail(email) {
+  const [u, d] = email.split('@');
+  return d ? `${u.slice(0, 2)}${'*'.repeat(Math.max(1, u.length - 2))}@${d}` : '***';
+}
 
 // Cap signups per IP so bots/spam can't pollute the validation data.
 router.post('/', rateLimit({ max: 10, windowMs: 10 * 60 * 1000 }), (req, res) => {
@@ -24,6 +31,15 @@ router.post('/', rateLimit({ max: 10, windowMs: 10 * 60 * 1000 }), (req, res) =>
   }
 
   const added = db.addWaitlist(email, source);
+
+  // Ping the owner on a genuinely new signup so they can follow up fast.
+  // Fire-and-forget: a webhook hiccup must not fail the signup.
+  if (added) {
+    notify
+      .notifyOwner(`🔔 새 대기자: ${maskEmail(email)} · 출처 ${source || '?'} · 누적 ${db.waitlistCount()}명`)
+      .catch(() => {});
+  }
+
   // Same response whether new or duplicate — avoids leaking who is registered.
   return res.status(201).json({ ok: true, already: !added });
 });

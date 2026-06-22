@@ -23,4 +23,8 @@ module.exports = {
   // Owner-only token to view the validation signal (/admin). When unset the
   // admin endpoint 404s entirely. Secret — set via env, never hardcode.
   ADMIN_TOKEN: process.env.ADMIN_TOKEN || '',
+
+  // Optional: webhook the owner gets pinged on for each new signup (KakaoWork
+  // incoming webhook, or any {text}-style webhook). Unset = no owner alerts.
+  SIGNUP_ALERT_WEBHOOK: process.env.SIGNUP_ALERT_WEBHOOK || '',
 };

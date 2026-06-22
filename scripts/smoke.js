@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
 const assert = require('assert');
 
 // Configure BEFORE requiring the app (config reads env at load time).
@@ -14,6 +15,7 @@ process.env.PORT = '3999';
 process.env.BASE_URL = 'http://localhost:3999';
 process.env.WORKER_INTERVAL_SECONDS = '1';
 process.env.ADMIN_TOKEN = 'smoke-admin-token';
+process.env.SIGNUP_ALERT_WEBHOOK = 'http://localhost:3998/hook';
 for (const f of [TEST_DB, TEST_DB + '-wal', TEST_DB + '-shm']) { try { fs.unlinkSync(f); } catch {} }
 
 const { start } = require('../src/server');
@@ -24,6 +26,13 @@ const j = (res) => res.json();
 const base = process.env.BASE_URL;
 
 (async () => {
+  // Capture server stands in for the owner's KakaoWork webhook.
+  const captured = [];
+  const capSrv = http.createServer((req, res) => {
+    let b = ''; req.on('data', (c) => (b += c));
+    req.on('end', () => { try { captured.push(JSON.parse(b)); } catch {} res.end('ok'); });
+  }).listen(3998);
+
   const server = start();
   await sleep(300);
   try {
@@ -120,12 +129,19 @@ const base = process.env.BASE_URL;
     assert.ok(!sig.recent.some((r) => r.email === 'tester@example.com'), 'no raw email leaked');
     console.log('  ✓ admin signal (auth + masking)');
 
+    // 11. owner signup alert (fire-and-forget → small settle delay)
+    await sleep(400);
+    assert.ok(captured.length >= 1, 'owner alert fired on new signup');
+    assert.match(captured[0].text, /새 대기자/, 'alert text shape');
+    assert.ok(!/[^*@]+@example\.com/.test(captured[0].text.split('·')[0]) || captured[0].text.includes('*'), 'email masked in alert');
+    console.log(`  ✓ owner signup alert (${captured.length} captured)`);
+
     console.log('\nSMOKE PASS ✅');
-    server.close();
+    server.close(); capSrv.close();
     process.exit(0);
   } catch (err) {
     console.error('\nSMOKE FAIL ❌', err.message);
-    server.close();
+    server.close(); capSrv.close();
     process.exit(1);
   }
 })();

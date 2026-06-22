@@ -1,5 +1,7 @@
 'use strict';
 
+const config = require('./config');
+
 // Alert delivery. PoC: log to console + optional per-check webhook (POST JSON).
 // If the webhook URL is a KakaoWork incoming webhook, send its expected
 // { text } chat format instead of the generic event payload.
@@ -56,4 +58,11 @@ async function alert(check, state) {
   }
 }
 
-module.exports = { alert, isKakaoWork, kakaoworkText };
+// Owner ping (e.g. new signup). Fires to SIGNUP_ALERT_WEBHOOK if configured.
+// { text } format suits KakaoWork incoming webhooks (and Slack).
+async function notifyOwner(text) {
+  if (!config.SIGNUP_ALERT_WEBHOOK) return false;
+  return fireWebhook(config.SIGNUP_ALERT_WEBHOOK, { text });
+}
+
+module.exports = { alert, isKakaoWork, kakaoworkText, notifyOwner };

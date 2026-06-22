@@ -88,6 +88,7 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 - **채널 출처**: 랜딩 `?ref=`/`utm_source` → 가입 `source`에 `{ref}:{form}` 기록. 채널별 링크는 `GTM.md §4-1`.
 - **레이트리밋**: `POST /api/waitlist` IP당 10건/10분(`src/ratelimit.js`, 인메모리·단일인스턴스). 검증 데이터 스팸 보호.
 - **어드민 신호 뷰**: `/admin`(페이지) + `GET /api/admin/signal`(`src/routes/admin.js`). 토큰(`ADMIN_TOKEN` env) 보호, 미설정 시 404. 방문/가입/전환+채널별+최근가입(이메일 마스킹). 토큰은 Railway 변수, 코드 하드코딩 금지. 신호 확인법은 `RUNBOOK.md` 상단.
+- **가입 알림(owner)**: 새 가입 시 `SIGNUP_ALERT_WEBHOOK`(env)으로 `{text}` 발송(`notify.notifyOwner`). 카카오워크 incoming webhook URL 넣으면 폰 푸시. 미설정=무동작. 이메일 마스킹. 가입자 빠른 인터뷰용 계측.
 - **`LANDING_ONLY=true`**: 프로덕션 배포용. 랜딩+waitlist만 노출, checks/ping/`/app`/워커 차단(미인증 API·SSRF 표면 제거). 로컬은 미설정=풀앱. 배포는 `DEPLOY.md`(Railway) 참고.
 
 **아직 없음 (의도적 — 범위 밖):** 인증/멀티테넌시, 이메일·Slack·**카톡** 실제 발송, 결제, 알림 중복억제 정교화, 배포.
