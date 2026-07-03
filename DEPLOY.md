@@ -67,3 +67,20 @@ railway domain        # *.up.railway.app URL 생성/출력
 ## Stage 2 진입 시 (참고)
 풀 제품 공개하려면 `LANDING_ONLY` 해제 전에: 인증/멀티테넌시, SSRF 가드(webhook 사설IP 차단),
 레이트리밋 먼저. ROADMAP Stage 2/3 참고.
+
+## 이메일 도메인 인증 (Resend) — 도메인 확보 시 진행
+
+현재 제약: Resend 무도메인 = 수신자가 **Resend 계정 이메일(cdi2303@naver.com)만 가능** (그 외 403).
+일반 가입자에게 알림 메일 보내려면 도메인 인증 필수. **코드 수정 불필요** — env만 바꾸면 됨.
+
+1. 도메인 확보 (예: cronwatch.kr). 구매/DNS 편집 권한 필요.
+2. [Resend 대시보드](https://resend.com/domains) → Add Domain → 도메인 입력 (권장: 루트 대신 `mail.도메인` 같은 서브도메인도 가능).
+3. Resend가 주는 DNS 레코드를 등록기관(가비아/Cloudflare 등)에 추가:
+   - TXT (SPF): `send.도메인` → `v=spf1 include:amazonses.com ~all` (실제 값은 대시보드 표시 기준)
+   - TXT (DKIM): `resend._domainkey.도메인` → 대시보드가 주는 p=... 값
+   - MX (선택, 반송 처리용): 대시보드 표시 기준
+4. Resend에서 Verify 클릭 → 전파까지 몇 분~몇 시간.
+5. Railway 변수 교체: `EMAIL_FROM=CronWatch <alerts@도메인>` → 재배포.
+6. 검증: 아무 수신자로 발송 테스트 (dogfood 체크 down→복구 사이클이면 실사이클 검증).
+
+주의: Railway의 RESEND_API_KEY는 발송 전용(restricted)이라 도메인 관리는 API로 안 됨 — 대시보드에서.
