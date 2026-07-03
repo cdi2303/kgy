@@ -96,6 +96,9 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 **배포됨:** Railway 라이브 → **https://cronwatch-production.up.railway.app**
 - **2026-07-03: `LANDING_ONLY=false` 플립 → 풀 제품 공개** (랜딩 + `/app` 인증/감시 + ping + 워커 + 이메일). 검증: `/health` 200, `/app` 200, `/api/checks` 401, ping 라우트/워커 동작.
 - (그 전 어느 시점 서비스 Failed로 죽어 있었음 — 2026-07-03 재배포로 복구. 원인 로그 없음.)
+- ⚠️ **볼륨 유실 사고 (2026-07-03 발견)**: `/data` 볼륨이 사라져 있었음 → DB가 컨테이너 임시 디스크에 있어 **재배포마다 리셋**되고 있었다. `railway volume add --mount-path /data`로 재장착, 재배포 후 데이터 생존 검증 완료. 볼륨 존재 여부는 `railway volume list`로 확인.
+- **알림 경로 검증 (2026-07-03)**: Telegram(sendMessage OK) + 이메일(프로덕션 down→복구 실사이클, Resend 200) 모두 동작. ⚠️ Resend 무도메인 제약: 수신자는 **Resend 계정 이메일(cdi2303@naver.com)만 가능** — 다른 주소는 HTTP 403. 일반 가입자에게 보내려면 도메인 인증 필요.
+- **Dogfooding 계정**: cdi2303@**naver**.com (Resend 수신 가능 주소라서). gmail로 만든 초기 계정은 체크 없는 빈 행으로 남아 있음(삭제 API 없음, 무해).
 - 프로젝트 `cronwatch` (cdi2303's Projects), 서비스 `cronwatch`, 볼륨 `/data`(SQLite 영구저장).
 - 재배포: `kgy`에서 `railway up --detach` (이미 링크됨). 상태: `railway status`. 로그: `railway logs` / `railway logs --build`.
 - 프로덕션 변수: `LANDING_ONLY=true`, `DB_PATH=/data/cronwatch.sqlite`, `NIXPACKS_NODE_VERSION=20`.
