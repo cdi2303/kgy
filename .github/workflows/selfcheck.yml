@@ -11,7 +11,9 @@
 name: selfcheck
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    # Offset minutes on purpose: GitHub delays/drops schedules that land on
+    # herd times (:00, :10, ...). '*/10' never fired in its first 78 minutes.
+    - cron: '4,14,24,34,44,54 * * * *'
   workflow_dispatch:
 
 jobs:
