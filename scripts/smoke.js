@@ -93,9 +93,12 @@ const base = process.env.BASE_URL;
     assert.strictEqual(detail.status, 'up', 'recovered to up');
     console.log('  ✓ recovery -> up');
 
-    // 5. events recorded
+    // 5. events recorded, incl. down/up transitions; uptime computed
     assert.ok(detail.events.length >= 2, 'events recorded');
-    console.log('  ✓ events recorded:', detail.events.length);
+    assert.ok(detail.events.some((e) => e.type === 'down'), 'down transition event logged');
+    assert.ok(detail.events.some((e) => e.type === 'up'), 'up transition event logged');
+    assert.ok(detail.uptime_7d > 0 && detail.uptime_7d < 1, `uptime reflects downtime (got ${detail.uptime_7d})`);
+    console.log(`  ✓ events (${detail.events.length}) + transitions + uptime ${(detail.uptime_7d * 100).toFixed(1)}%`);
 
     // 6. waitlist: signup, dedupe, count
     const w1 = await j(await fetch(`${base}/api/waitlist`, {

@@ -25,6 +25,22 @@
   code { background:#0f1115; padding:2px 6px; border-radius:5px; font-size:12px; word-break:break-all; }
   .row-actions { display:flex; gap:6px; }
   .hide { display:none; }
+  /* check detail */
+  a.name { color:var(--fg); text-decoration:none; border-bottom:1px dashed var(--mut); cursor:pointer; }
+  a.name:hover { color:#fff; border-bottom-color:var(--fg); }
+  tr.detail > td { background:#12151c; padding:14px 16px; }
+  .d-stats { display:flex; gap:24px; flex-wrap:wrap; margin-bottom:12px; }
+  .d-stats b { font-size:18px; }
+  .d-stats .k { display:block; font-size:12px; color:var(--mut); }
+  ul.ev { list-style:none; margin:0; padding:0; max-height:260px; overflow-y:auto; }
+  ul.ev li { display:flex; gap:10px; padding:4px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  ul.ev li:last-child { border-bottom:0; }
+  .dot { width:8px; height:8px; border-radius:50%; margin-top:6px; flex:none; }
+  .e-success .dot{background:var(--up)} .e-up .dot{background:var(--up)}
+  .e-fail .dot{background:var(--down)} .e-down .dot{background:var(--down)}
+  .e-start .dot{background:var(--pause)}
+  .ev .t { color:var(--mut); min-width:150px; }
+  .ev .ip { color:var(--mut); margin-left:auto; }
   /* auth */
   .auth-wrap { max-width:380px; margin:8vh auto; }
   .tabs { display:flex; gap:8px; margin-bottom:14px; }
@@ -111,6 +127,8 @@ $('#authForm').addEventListener('submit', async (e) => {
 $('#logout').onclick = async () => { await fetch('/api/auth/logout', {method:'POST'}); location.reload(); };
 
 // ---- dashboard ----
+let openId = null; // check whose detail panel is expanded
+
 async function load() {
   const res = await fetch('/api/checks');
   if (res.status === 401) { show('auth'); return; }
@@ -118,9 +136,9 @@ async function load() {
   const rows = $('#rows');
   if (!checks.length) { rows.innerHTML = '<tr><td colspan="6" class="mut">아직 체크가 없습니다</td></tr>'; return; }
   rows.innerHTML = checks.map(c => `
-    <tr>
+    <tr data-row="${c.id}">
       <td><span class="pill s-${c.status}">${c.status}</span></td>
-      <td>${esc(c.name)}</td>
+      <td><a class="name" data-detail="${c.id}">${esc(c.name)}</a></td>
       <td><code>${c.ping_url}</code></td>
       <td>${fmt(c.last_ping_at)}</td>
       <td>${c.period_seconds}s +${c.grace_seconds}s</td>
@@ -131,6 +149,36 @@ async function load() {
         <button class="ghost" data-act="delete" data-id="${c.id}">delete</button>
       </td>
     </tr>`).join('');
+  if (openId && !checks.some(c => c.id === openId)) openId = null;
+  if (openId) await renderDetail();
+}
+
+const EV_LABEL = { success:'ping', start:'start', fail:'fail 신고', down:'⛔ DOWN', up:'✅ 복구' };
+
+async function renderDetail() {
+  const res = await fetch('/api/checks/' + openId);
+  if (!res.ok) { openId = null; return; }
+  const d = await res.json();
+  const anchor = document.querySelector(`tr[data-row="${openId}"]`);
+  if (!anchor) return;
+  const up7 = d.uptime_7d == null ? '—' : (d.uptime_7d * 100).toFixed(2) + '%';
+  const evs = d.events.length ? d.events.map(e => `
+    <li class="e-${e.type}"><span class="dot"></span>
+      <span class="t">${fmt(e.received_at)}</span>
+      <span>${EV_LABEL[e.type] || esc(e.type)}</span>
+      ${e.source_ip ? `<span class="ip">${esc(e.source_ip)}</span>` : ''}
+    </li>`).join('') : '<li class="mut">아직 이벤트가 없습니다</li>';
+  const tr = document.createElement('tr');
+  tr.className = 'detail';
+  tr.innerHTML = `<td colspan="6">
+    <div class="d-stats">
+      <div><span class="k">가동률 (최근 7일)</span><b>${up7}</b></div>
+      <div><span class="k">생성</span><b style="font-size:14px">${fmt(d.created_at)}</b></div>
+      <div><span class="k">이벤트 (최근 ${d.events.length}건)</span><b style="font-size:14px">ping·전환 타임라인 ↓</b></div>
+    </div>
+    <ul class="ev">${evs}</ul>
+  </td>`;
+  anchor.after(tr);
 }
 
 $('#createForm').addEventListener('submit', async (e) => {
@@ -150,6 +198,13 @@ $('#createForm').addEventListener('submit', async (e) => {
 });
 
 $('#rows').addEventListener('click', async (e) => {
+  const link = e.target.closest('a[data-detail]');
+  if (link) {
+    e.preventDefault();
+    openId = openId === link.dataset.detail ? null : link.dataset.detail;
+    load();
+    return;
+  }
   const btn = e.target.closest('button[data-act]');
   if (!btn) return;
   const { act, id } = btn.dataset;

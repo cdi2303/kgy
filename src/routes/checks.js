@@ -66,11 +66,35 @@ router.post('/', (req, res) => {
   res.status(201).json(present(check));
 });
 
-// Detail (+ recent events)
+// Uptime fraction over the trailing window, from 'down'/'up' transition
+// events. Unknown periods (before any transition was recorded) count as up.
+const UPTIME_WINDOW_MS = 7 * 24 * 3600 * 1000;
+function uptime(check, windowMs = UPTIME_WINDOW_MS) {
+  const nowMs = db.now();
+  const start = Math.max(nowMs - windowMs, check.created_at);
+  const total = nowMs - start;
+  if (total <= 0) return null;
+  let state = db.lastTransitionBefore(check.id, start) || 'up';
+  let at = start;
+  let downMs = 0;
+  for (const ev of db.transitionsSince(check.id, start)) {
+    if (state === 'down') downMs += ev.received_at - at;
+    state = ev.type;
+    at = ev.received_at;
+  }
+  if (state === 'down') downMs += nowMs - at;
+  return (total - downMs) / total;
+}
+
+// Detail (+ recent events + uptime)
 router.get('/:id', (req, res) => {
   const check = db.getCheck(req.params.id, req.user.id);
   if (!check) return res.status(404).json({ error: 'not found' });
-  res.json({ ...present(check), events: db.recentEvents(check.id, 20) });
+  res.json({
+    ...present(check),
+    uptime_7d: uptime(check),
+    events: db.recentEvents(check.id, 50),
+  });
 });
 
 // Pause / resume

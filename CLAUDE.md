@@ -116,6 +116,7 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 - **이메일 알림**: `notify.sendEmail`. **Railway는 SMTP 포트(25/587) 아웃바운드 차단** → SMTP는 Connection timeout. 그래서 **Resend HTTP API(443) 우선** 사용: `RESEND_API_KEY`(+`EMAIL_FROM`, 기본 onboarding@resend.dev, `RESEND_API_BASE` 테스트 오버라이드). SMTP(`SMTP_*`)는 Railway 외 호스트용 폴백. 체크 down/up 시 owner 이메일. 미설정=무동작. Resend 무도메인 시 from=onboarding@resend.dev + 본인 가입메일로만 발송(임의 수신자는 도메인 인증 필요).
 - **product 노출**: 랜딩 nav에 `/app` 로그인 링크. 프로덕션 `LANDING_ONLY` 플립 시 풀 제품(인증+감시+이메일) 공개 — SSRF 가드 있어 안전.
 - **알림 정책 (2026-07-03)**: down 지속 시 워커가 `REALERT_INTERVAL_SECONDS`(기본 3600, 0=끔)당 최대 1회 재알림(이메일 제목 "여전히 다운", generic webhook payload에 `repeat` 플래그). `checks.last_alert_at` 컬럼(마이그레이션)으로 추적, down 전환/fail ping 시 스탬프. 복구 알림은 1회. smoke §15 검증.
+- **check 상세 (2026-07-03)**: down/up **전환도 events에 기록**(worker/ping.js, type=`down`/`up` — ping 종류 success/start/fail과 구분). `GET /api/checks/:id` → `uptime_7d`(전환 이벤트 워크, 미기록 구간=up 가정) + events 50건. 대시보드에서 이름 클릭 → 상세 패널(가동률·타임라인). smoke §5 검증.
 - **남은 외부게이트**: 알림톡(Solapi키+**카카오 템플릿 심사**), 결제(PG 가맹키). 둘 다 네 사업자/계약 필요 — 키/승인 들어오면 빌드.
 
 ## CI

@@ -28,6 +28,7 @@ function handle(type) {
       if (check.status !== 'down') {
         db.setStatus(check.id, 'down');
         db.markAlerted(check.id);
+        db.addEvent({ check_id: check.id, type: 'down' }); // transition, for timeline/uptime
         notify.alert(check, 'down');
       }
       return res.json({ ok: true, status: 'down' });
@@ -36,7 +37,10 @@ function handle(type) {
     if (type === 'success') {
       const wasDown = check.status === 'down';
       db.recordPing(check.id);          // stamps time + flips to 'up'
-      if (wasDown) notify.alert(check, 'up');
+      if (wasDown) {
+        db.addEvent({ check_id: check.id, type: 'up' }); // transition, for timeline/uptime
+        notify.alert(check, 'up');
+      }
       return res.json({ ok: true, status: 'up' });
     }
 

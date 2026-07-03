@@ -112,6 +112,17 @@ const stmt = {
     VALUES (@id, @check_id, @type, @received_at, @source_ip)
   `),
   recentEvents: db.prepare(`SELECT * FROM events WHERE check_id = ? ORDER BY received_at DESC LIMIT ?`),
+  // State transitions ('down'/'up' events) for uptime math.
+  transitionsSince: db.prepare(`
+    SELECT type, received_at FROM events
+    WHERE check_id = ? AND type IN ('down','up') AND received_at >= ?
+    ORDER BY received_at ASC
+  `),
+  lastTransitionBefore: db.prepare(`
+    SELECT type FROM events
+    WHERE check_id = ? AND type IN ('down','up') AND received_at < ?
+    ORDER BY received_at DESC LIMIT 1
+  `),
   insertWaitlist: db.prepare(`INSERT OR IGNORE INTO waitlist (id, email, source, created_at) VALUES (@id, @email, @source, @created_at)`),
   countWaitlist: db.prepare(`SELECT COUNT(*) AS n FROM waitlist`),
   bumpStat: db.prepare(`INSERT INTO stats (key, n) VALUES (?, 1) ON CONFLICT(key) DO UPDATE SET n = n + 1`),
@@ -156,6 +167,9 @@ module.exports = {
   deleteCheck: (id, user_id) => stmt.deleteCheckOwned.run(id, user_id),
   activeChecks: () => stmt.activeChecks.all(),
   recentEvents: (checkId, limit = 20) => stmt.recentEvents.all(checkId, limit),
+  transitionsSince: (checkId, sinceMs) => stmt.transitionsSince.all(checkId, sinceMs),
+  lastTransitionBefore: (checkId, beforeMs) =>
+    (stmt.lastTransitionBefore.get(checkId, beforeMs) || {}).type || null,
 
   setStatus: (id, status) => stmt.updateStatus.run({ id, status }),
   markAlerted: (id, ts = now()) => stmt.markAlerted.run({ id, ts }),

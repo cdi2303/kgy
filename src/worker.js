@@ -23,6 +23,7 @@ function evaluate() {
     if (overdue && check.status !== 'down') {
       db.setStatus(check.id, 'down');
       db.markAlerted(check.id, nowMs);
+      db.addEvent({ check_id: check.id, type: 'down' }); // transition, for timeline/uptime
       notify.alert(check, 'down');
     } else if (check.status === 'down' && realertMs > 0 && nowMs - (check.last_alert_at || 0) >= realertMs) {
       // Still down: remind at most once per interval (dup suppression).
