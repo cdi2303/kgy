@@ -130,6 +130,10 @@ const stmt = {
   waitlistRecent: db.prepare(`SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC LIMIT ?`),
   waitlistByChannel: db.prepare(`SELECT COALESCE(source,'?') AS source, COUNT(*) AS n FROM waitlist GROUP BY source ORDER BY n DESC`),
 
+  countUsers: db.prepare(`SELECT COUNT(*) AS n FROM users`),
+  checksByStatus: db.prepare(`SELECT status, COUNT(*) AS n FROM checks GROUP BY status`),
+  eventCountsSince: db.prepare(`SELECT type, COUNT(*) AS n FROM events WHERE received_at >= ? GROUP BY type`),
+
   insertUser: db.prepare(`INSERT INTO users (id, email, pass_hash, plan, created_at) VALUES (@id, @email, @pass_hash, 'free', @created_at)`),
   getUserByEmail: db.prepare(`SELECT * FROM users WHERE email = ?`),
   getUserById: db.prepare(`SELECT * FROM users WHERE id = ?`),
@@ -193,6 +197,10 @@ module.exports = {
 
   bumpStat: (key) => stmt.bumpStat.run(key),
   statValue: (key) => (stmt.getStat.get(key) || { n: 0 }).n,
+
+  countUsers: () => stmt.countUsers.get().n,
+  checksByStatus: () => stmt.checksByStatus.all(),
+  eventCountsSince: (sinceMs) => stmt.eventCountsSince.all(sinceMs),
 
   waitlistRecent: (limit = 50) => stmt.waitlistRecent.all(limit),
   waitlistByChannel: () => stmt.waitlistByChannel.all(),

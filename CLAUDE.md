@@ -127,6 +127,7 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 ## CI
 - GitHub Actions(`.github/workflows/ci.yml`): push(main)/PR마다 Node 20 + `npm ci` + `npm run smoke`. 초록 유지.
 - **Dogfooding**(`.github/workflows/selfcheck.yml`, 2026-07-03): 10분 cron으로 프로덕션 `/health` → 성공 시 `cronwatch-selfcheck` 체크(주기 600s/여유 1800s)에 ping. health 실패=워크플로 실패→GitHub 이메일(완전 사망용 외부 알람). ping URL은 GH secret `SELFCHECK_PING_URL`(repo public이라 비공개 필수). 계정: cdi2303@naver.com(Resend 수신 가능 주소).
+- **사용량 지표 (2026-07-03)**: `GET /api/admin/signal`의 `usage` 필드 — users, checks(상태별), pings_24h/7d(events 집계), alerts(down/repeat/up), email(sent/failed). 알림·이메일 카운트는 `stats` 테이블 카운터(`notify.js`에서 bump). `/admin` 페이지에 카드+표. smoke §10a 검증.
 - **DB 백업**(`.github/workflows/backup.yml`, 2026-07-03): 매일 03:17 KST `GET /api/admin/backup`(ADMIN_TOKEN, better-sqlite3 온라인 backup) → openssl AES-256 암호화 → 아티팩트 30일. GH secrets: `ADMIN_TOKEN`, `BACKUP_PASSPHRASE`. 복원 명령은 backup.yml 상단 주석. ⚠️ ADMIN_TOKEN 회전 시 GH secret도 같이 갱신할 것.
 
 ## 작업 규칙 (이 프로젝트)

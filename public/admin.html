@@ -38,6 +38,16 @@
       <div class="c"><div class="v" id="signups">–</div><div class="l">가입</div></div>
       <div class="c"><div class="v" id="conv">–</div><div class="l">전환율</div></div>
     </div>
+    <div class="cards">
+      <div class="c"><div class="v" id="uUsers">–</div><div class="l">사용자</div></div>
+      <div class="c"><div class="v" id="uChecks">–</div><div class="l">활성 체크 (다운)</div></div>
+      <div class="c"><div class="v" id="uPings">–</div><div class="l">ping 24h / 7d</div></div>
+    </div>
+    <div class="card">
+      <strong>알림 발송</strong>
+      <table><thead><tr><th>다운</th><th>재알림</th><th>복구</th><th>이메일 성공</th><th>이메일 실패</th></tr></thead>
+        <tbody><tr id="uAlerts"><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td></tr></tbody></table>
+    </div>
     <div class="card">
       <strong>채널별 가입</strong>
       <table><thead><tr><th>출처(ref:form)</th><th>가입</th></tr></thead><tbody id="channels"></tbody></table>
@@ -69,6 +79,14 @@ async function load(token){
     $('#views').textContent = d.views;
     $('#signups').textContent = d.signups;
     $('#conv').textContent = (d.conversion*100).toFixed(1) + '%';
+    const u = d.usage || {};
+    const ck = u.checks || {};
+    const active = (ck.new||0) + (ck.up||0) + (ck.down||0);
+    $('#uUsers').textContent = u.users ?? '–';
+    $('#uChecks').textContent = `${active} (${ck.down||0})`;
+    $('#uPings').textContent = `${u.pings_24h ?? 0} / ${u.pings_7d ?? 0}`;
+    const al = u.alerts || {}, em = u.email || {};
+    $('#uAlerts').innerHTML = [al.down||0, al.repeat||0, al.up||0, em.sent||0, em.failed||0].map(n=>`<td>${n}</td>`).join('');
     $('#channels').innerHTML = d.by_channel.length
       ? d.by_channel.map(c => `<tr><td>${esc(c.source)}</td><td>${c.n}</td></tr>`).join('')
       : '<tr><td class="mut" colspan="2">아직 없음</td></tr>';

@@ -162,6 +162,16 @@ const base = process.env.BASE_URL;
     assert.ok(!sig.recent.some((r) => r.email === 'tester@example.com'), 'no raw email leaked');
     console.log('  ✓ admin signal (auth + masking)');
 
+    // 10a. usage metrics (Stage 3): counts reflect the up->down->up cycle above
+    const u = sig.usage;
+    assert.ok(u && u.users >= 1, 'users counted');
+    assert.ok((u.checks.up || 0) >= 1, 'recovered check counted as up');
+    assert.ok(u.pings_24h >= 2 && u.pings_7d >= u.pings_24h, 'pings counted');
+    assert.ok(u.alerts.down >= 1 && u.alerts.up >= 1, 'alert transitions counted');
+    assert.ok(u.alerts.repeat >= 1, 'repeat alerts counted');
+    assert.ok(u.email.sent >= 2, 'emails counted');
+    console.log(`  ✓ usage metrics (users=${u.users}, pings24h=${u.pings_24h}, alerts=${JSON.stringify(u.alerts)}, email=${JSON.stringify(u.email)})`);
+
     // 10b. admin backup: auth-gated, returns a real SQLite snapshot
     const bkNo = await fetch(`${base}/api/admin/backup`);
     assert.strictEqual(bkNo.status, 401, 'backup requires token');

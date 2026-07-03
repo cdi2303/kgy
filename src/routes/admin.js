@@ -54,6 +54,14 @@ router.get('/backup', async (req, res) => {
 router.get('/signal', (req, res) => {
   const views = db.statValue('landing_views');
   const signups = db.waitlistCount();
+
+  // Product usage (Stage 3): who's actually using the monitor.
+  const toMap = (rows, key) => Object.fromEntries(rows.map((r) => [r[key], r.n]));
+  const pingsOf = (m) => (m.success || 0) + (m.start || 0) + (m.fail || 0);
+  const nowMs = db.now();
+  const e24 = toMap(db.eventCountsSince(nowMs - 24 * 3600 * 1000), 'type');
+  const e7d = toMap(db.eventCountsSince(nowMs - 7 * 24 * 3600 * 1000), 'type');
+
   res.json({
     views,
     signups,
@@ -64,6 +72,18 @@ router.get('/signal', (req, res) => {
       source: r.source,
       created_at: r.created_at,
     })),
+    usage: {
+      users: db.countUsers(),
+      checks: toMap(db.checksByStatus(), 'status'), // {up: n, down: n, new: n, paused: n}
+      pings_24h: pingsOf(e24),
+      pings_7d: pingsOf(e7d),
+      alerts: {
+        down: db.statValue('alert_down'),
+        repeat: db.statValue('alert_repeat'),
+        up: db.statValue('alert_up'),
+      },
+      email: { sent: db.statValue('email_sent'), failed: db.statValue('email_failed') },
+    },
   });
 });
 

@@ -46,15 +46,21 @@ async function sendViaResend(to, subject, text) {
 }
 
 async function sendEmail(to, subject, text) {
-  if (config.RESEND_API_KEY) return sendViaResend(to, subject, text);
-  const t = transport();
-  if (!t) return false;
-  try {
-    return await t.sendMail({ from: config.SMTP_FROM || config.EMAIL_FROM, to, subject, text });
-  } catch (err) {
-    console.error(`[notify] email failed to ${to}: ${err.message}`);
-    return false;
+  let ok;
+  if (config.RESEND_API_KEY) {
+    ok = await sendViaResend(to, subject, text);
+  } else {
+    const t = transport();
+    if (!t) return false; // not configured — not a delivery failure
+    try {
+      ok = !!(await t.sendMail({ from: config.SMTP_FROM || config.EMAIL_FROM, to, subject, text }));
+    } catch (err) {
+      console.error(`[notify] email failed to ${to}: ${err.message}`);
+      ok = false;
+    }
   }
+  db.bumpStat(ok ? 'email_sent' : 'email_failed'); // usage metrics (/admin)
+  return ok;
 }
 
 // Alert delivery. PoC: log to console + optional per-check webhook (POST JSON).
@@ -113,6 +119,7 @@ async function fireUserWebhook(url, payload) {
 async function alert(check, state, { repeat = false } = {}) {
   const label = state === 'down' ? (repeat ? 'STILL DOWN ⛔' : 'DOWN ⛔') : 'RECOVERED ✅';
   console.log(`[ALERT] ${label}  "${check.name}" (${check.id})`);
+  db.bumpStat(state === 'down' ? (repeat ? 'alert_repeat' : 'alert_down') : 'alert_up'); // usage metrics
 
   if (check.webhook_url) {
     const payload = isKakaoWork(check.webhook_url)
