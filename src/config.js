@@ -12,6 +12,9 @@ module.exports = {
   PORT: parseInt(process.env.PORT || '3000', 10),
   BASE_URL: process.env.BASE_URL || `http://localhost:${process.env.PORT || '3000'}`,
   WORKER_INTERVAL_SECONDS: parseInt(process.env.WORKER_INTERVAL_SECONDS || '15', 10),
+  // While a check stays down, re-alert at most once per this interval
+  // (dup suppression + reminder). 0 = only the down transition alerts.
+  REALERT_INTERVAL_SECONDS: parseInt(process.env.REALERT_INTERVAL_SECONDS || '3600', 10),
   DB_PATH: path.resolve(ROOT, process.env.DB_PATH || 'data/cronwatch.sqlite'),
 
   // Stage 1 production: serve ONLY the landing page + waitlist API.

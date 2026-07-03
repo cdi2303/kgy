@@ -14,6 +14,7 @@ process.env.DB_PATH = 'data/smoke-test.sqlite';
 process.env.PORT = '3999';
 process.env.BASE_URL = 'http://localhost:3999';
 process.env.WORKER_INTERVAL_SECONDS = '1';
+process.env.REALERT_INTERVAL_SECONDS = '1'; // fast still-down reminders for the test
 process.env.ADMIN_TOKEN = 'smoke-admin-token';
 // Telegram owner-alert path pointed at a local capture server.
 process.env.TELEGRAM_BOT_TOKEN = 'smoketoken';
@@ -80,7 +81,8 @@ const base = process.env.BASE_URL;
     console.log('  ✓ ping -> up');
 
     // 3. stop pinging; wait past period+grace+worker tick -> down
-    await sleep(4000);
+    // (long enough for the still-down re-alert to fire at least once too)
+    await sleep(6000);
     detail = await j(await fetch(`${base}/api/checks/${created.id}`, { headers: A }));
     assert.strictEqual(detail.status, 'down', 'down after overdue');
     console.log('  ✓ overdue -> down');
@@ -197,6 +199,15 @@ const base = process.env.BASE_URL;
     // down/recovery alerts (sections 3-4) also emailed the check owner via Resend
     assert.ok(emailCaptured.some((e) => e.to === 'smoke@user.test'), 'alert emails sent to owner');
     console.log('  ✓ email channel (Resend HTTP API + alert path)');
+
+    // 15. alert policy: still-down re-alert throttled by interval, recovery only once
+    const ownerMails = emailCaptured.filter((e) => e.to === 'smoke@user.test');
+    const downMails = ownerMails.filter((e) => e.subject.includes('다운'));
+    assert.ok(downMails.length >= 2, `re-alert while still down (got ${downMails.length})`);
+    assert.ok(downMails.some((e) => e.subject.includes('여전히')), 'repeat alert labeled');
+    const upMails = ownerMails.filter((e) => e.subject.includes('복구'));
+    assert.strictEqual(upMails.length, 1, 'recovery alerts exactly once');
+    console.log(`  ✓ alert policy (${downMails.length} down alerts incl. repeats, 1 recovery)`);
 
     console.log('\nSMOKE PASS ✅');
     server.close(); capSrv.close(); emailSrv.close();

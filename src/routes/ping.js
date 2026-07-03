@@ -27,6 +27,7 @@ function handle(type) {
     if (type === 'fail') {
       if (check.status !== 'down') {
         db.setStatus(check.id, 'down');
+        db.markAlerted(check.id);
         notify.alert(check, 'down');
       }
       return res.json({ ok: true, status: 'down' });

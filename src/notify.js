@@ -108,9 +108,10 @@ async function fireUserWebhook(url, payload) {
   return fireWebhook(url, payload);
 }
 
-// state: 'down' | 'up' (recovery)
-async function alert(check, state) {
-  const label = state === 'down' ? 'DOWN ⛔' : 'RECOVERED ✅';
+// state: 'down' | 'up' (recovery). opts.repeat = still-down reminder
+// (worker re-alert), not a fresh transition.
+async function alert(check, state, { repeat = false } = {}) {
+  const label = state === 'down' ? (repeat ? 'STILL DOWN ⛔' : 'DOWN ⛔') : 'RECOVERED ✅';
   console.log(`[ALERT] ${label}  "${check.name}" (${check.id})`);
 
   if (check.webhook_url) {
@@ -121,6 +122,7 @@ async function alert(check, state) {
           check_id: check.id,
           name: check.name,
           status: state,
+          repeat,
           at: new Date().toISOString(),
         };
     await fireUserWebhook(check.webhook_url, payload);
@@ -131,7 +133,7 @@ async function alert(check, state) {
     const owner = db.getUserById(check.user_id);
     if (owner) {
       const subject = state === 'down'
-        ? `⛔ [${check.name}] 모니터 다운`
+        ? (repeat ? `⛔ [${check.name}] 모니터 여전히 다운` : `⛔ [${check.name}] 모니터 다운`)
         : `✅ [${check.name}] 복구됨`;
       const body = state === 'down'
         ? `"${check.name}" 작업의 신호가 끊겼습니다. 배치/크론을 점검하세요.\n\n${config.BASE_URL}/app`

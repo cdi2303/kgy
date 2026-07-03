@@ -97,7 +97,8 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 - 프로젝트 `cronwatch` (cdi2303's Projects), 서비스 `cronwatch`, 볼륨 `/data`(SQLite 영구저장).
 - 재배포: `kgy`에서 `railway up --detach` (이미 링크됨). 상태: `railway status`. 로그: `railway logs` / `railway logs --build`.
 - 프로덕션 변수: `LANDING_ONLY=true`, `DB_PATH=/data/cronwatch.sqlite`, `NIXPACKS_NODE_VERSION=20`.
-- ⚠️ **Node 20 핀 유지** (`.nvmrc`, engines): better-sqlite3 prebuilt용. Node 24면 소스빌드→Python 없어 빌드 실패.
+- ⚠️ **Node 20 핀 유지** (`.nvmrc`, engines): better-sqlite3 prebuilt용. Node 24+면 소스빌드 실패.
+- 로컬(macOS, 2026-07-03~): 시스템 Node 26이라 실패 → `brew install node@20` 후 `export PATH="/opt/homebrew/opt/node@20/bin:$PATH"`로 npm 실행. (이 폴더는 Windows→macOS 이전됨; node_modules 재설치 완료.)
 - ⚠️ Git Bash에서 `/data` 같은 경로 인자는 `MSYS_NO_PATHCONV=1` 안 붙이면 Windows 경로로 변환됨.
 - waitlist/stats = **0으로 초기화됨(2026-06-22)**, 깨끗한 출시 상태. (검증 중 쌓인 테스트 데이터는 볼륨 재생성으로 제거.)
 - 프로덕션 데이터 wipe 방법: `railway volume delete --volume cronwatch-volume --yes` → `MSYS_NO_PATHCONV=1 railway volume add --mount-path /data` → `railway up --detach`. (볼륨 *파일* 단위 접근/`railway ssh`는 SSH 키 등록 필요 — 대시보드에서.)
@@ -114,6 +115,7 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 - **SSRF 가드**: `src/ssrf.js` — 유저 webhook_url을 사설/루프백/링크로컬/메타데이터로 못 쏘게 차단(`notify.fireUserWebhook`, redirect:manual). owner 알림(env, 신뢰)은 `fireWebhook` 직접. smoke 검증.
 - **이메일 알림**: `notify.sendEmail`. **Railway는 SMTP 포트(25/587) 아웃바운드 차단** → SMTP는 Connection timeout. 그래서 **Resend HTTP API(443) 우선** 사용: `RESEND_API_KEY`(+`EMAIL_FROM`, 기본 onboarding@resend.dev, `RESEND_API_BASE` 테스트 오버라이드). SMTP(`SMTP_*`)는 Railway 외 호스트용 폴백. 체크 down/up 시 owner 이메일. 미설정=무동작. Resend 무도메인 시 from=onboarding@resend.dev + 본인 가입메일로만 발송(임의 수신자는 도메인 인증 필요).
 - **product 노출**: 랜딩 nav에 `/app` 로그인 링크. 프로덕션 `LANDING_ONLY` 플립 시 풀 제품(인증+감시+이메일) 공개 — SSRF 가드 있어 안전.
+- **알림 정책 (2026-07-03)**: down 지속 시 워커가 `REALERT_INTERVAL_SECONDS`(기본 3600, 0=끔)당 최대 1회 재알림(이메일 제목 "여전히 다운", generic webhook payload에 `repeat` 플래그). `checks.last_alert_at` 컬럼(마이그레이션)으로 추적, down 전환/fail ping 시 스탬프. 복구 알림은 1회. smoke §15 검증.
 - **남은 외부게이트**: 알림톡(Solapi키+**카카오 템플릿 심사**), 결제(PG 가맹키). 둘 다 네 사업자/계약 필요 — 키/승인 들어오면 빌드.
 
 ## CI

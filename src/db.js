@@ -80,6 +80,12 @@ if (!hasUserId) {
 }
 db.exec(`CREATE INDEX IF NOT EXISTS idx_checks_user ON checks(user_id)`);
 
+// Migration: add checks.last_alert_at for re-alert throttling while down.
+const hasLastAlert = db.prepare(`PRAGMA table_info(checks)`).all().some((c) => c.name === 'last_alert_at');
+if (!hasLastAlert) {
+  db.exec(`ALTER TABLE checks ADD COLUMN last_alert_at INTEGER`);
+}
+
 const now = () => Date.now();
 const uid = () => crypto.randomUUID();
 const token = () => crypto.randomBytes(16).toString('hex');
@@ -97,6 +103,7 @@ const stmt = {
   getByToken: db.prepare(`SELECT * FROM checks WHERE ping_token = ?`),
   deleteCheckOwned: db.prepare(`DELETE FROM checks WHERE id = ? AND user_id = ?`),
   updateStatus: db.prepare(`UPDATE checks SET status = @status WHERE id = @id`),
+  markAlerted: db.prepare(`UPDATE checks SET last_alert_at = @ts WHERE id = @id`),
   recordPing: db.prepare(`UPDATE checks SET last_ping_at = @ts, status = 'up' WHERE id = @id`),
   setPaused: db.prepare(`UPDATE checks SET status = @status WHERE id = @id`),
   activeChecks: db.prepare(`SELECT * FROM checks WHERE status IN ('new','up','down')`),
@@ -151,6 +158,7 @@ module.exports = {
   recentEvents: (checkId, limit = 20) => stmt.recentEvents.all(checkId, limit),
 
   setStatus: (id, status) => stmt.updateStatus.run({ id, status }),
+  markAlerted: (id, ts = now()) => stmt.markAlerted.run({ id, ts }),
 
   // Mark a successful ping: stamp time, flip to up.
   recordPing(id, ts = now()) {

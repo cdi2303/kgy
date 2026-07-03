@@ -16,12 +16,18 @@ function deadlineOf(check) {
 
 function evaluate() {
   const nowMs = db.now();
+  const realertMs = config.REALERT_INTERVAL_SECONDS * 1000;
   for (const check of db.activeChecks()) {
     const overdue = nowMs > deadlineOf(check);
 
     if (overdue && check.status !== 'down') {
       db.setStatus(check.id, 'down');
+      db.markAlerted(check.id, nowMs);
       notify.alert(check, 'down');
+    } else if (check.status === 'down' && realertMs > 0 && nowMs - (check.last_alert_at || 0) >= realertMs) {
+      // Still down: remind at most once per interval (dup suppression).
+      db.markAlerted(check.id, nowMs);
+      notify.alert(check, 'down', { repeat: true });
     }
     // Recovery (up) is handled at ping time in routes/ping.js, where we
     // know a check was down and just received a heartbeat.
