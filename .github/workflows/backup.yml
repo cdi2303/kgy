@@ -1,0 +1,35 @@
+# Nightly DB backup. Pulls a SQLite snapshot from the admin endpoint,
+# encrypts it (repo is public — artifacts must never hold raw user data),
+# and stores it as a workflow artifact for 30 days.
+# Restore: download artifact -> openssl enc -d -aes-256-cbc -pbkdf2 \
+#   -in cronwatch.sqlite.enc -out cronwatch.sqlite -pass pass:<BACKUP_PASSPHRASE>
+name: db-backup
+on:
+  schedule:
+    - cron: '17 18 * * *' # 03:17 KST daily
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: fetch snapshot
+        run: |
+          curl -fsS --max-time 60 \
+            -H "x-admin-token: ${{ secrets.ADMIN_TOKEN }}" \
+            -o cronwatch.sqlite \
+            https://cronwatch-production.up.railway.app/api/admin/backup
+      - name: sanity check
+        run: head -c 16 cronwatch.sqlite | grep -q 'SQLite format 3'
+      - name: encrypt
+        env:
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          openssl enc -aes-256-cbc -pbkdf2 -salt \
+            -in cronwatch.sqlite -out cronwatch.sqlite.enc -pass env:PASS
+          rm cronwatch.sqlite
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: cronwatch.sqlite.enc
+          retention-days: 30

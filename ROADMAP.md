@@ -55,7 +55,7 @@
 ## ⏭ Stage 3 — 운영 견고화
 
 - [ ] 배포 (단일 VPS + 프로세스 매니저, 또는 컨테이너). HTTPS.
-- [ ] DB 백업 / SQLite→Postgres 검토 (동시성·규모 시).
+- [x] DB 백업 (2026-07-03): `/api/admin/backup`(토큰 보호, SQLite 스냅샷) + GH Actions 매일 03:17 KST 암호화 아티팩트 30일 보관. 복원법은 `backup.yml` 주석. (Postgres 검토는 규모 시)
 - [ ] 워커 신뢰성: 서버 재시작 후에도 판정 일관, 다중 인스턴스 시 중복 알림 방지.
 - [x] 자기 서비스 감시 — dogfooding (2026-07-03): GH Actions `selfcheck` 10분마다 `/health`+ping. 완전 사망=워크플로 실패→GitHub 이메일(외부 알람), 부분 장애=자체 워커 알림. (로깅/모니터링 일반화는 추후).
 - [ ] 사용량 지표 (활성 check, 알림 발송 수).

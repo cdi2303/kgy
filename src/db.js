@@ -216,4 +216,7 @@ module.exports = {
   purgeExpiredSessions: () => stmt.deleteExpiredSessions.run(now()),
 
   newSessionToken: () => crypto.randomBytes(32).toString('hex'),
+
+  // Online snapshot of the live DB to destPath (safe under WAL).
+  backupTo: (destPath) => db.backup(destPath),
 };

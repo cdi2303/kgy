@@ -162,6 +162,16 @@ const base = process.env.BASE_URL;
     assert.ok(!sig.recent.some((r) => r.email === 'tester@example.com'), 'no raw email leaked');
     console.log('  ✓ admin signal (auth + masking)');
 
+    // 10b. admin backup: auth-gated, returns a real SQLite snapshot
+    const bkNo = await fetch(`${base}/api/admin/backup`);
+    assert.strictEqual(bkNo.status, 401, 'backup requires token');
+    const bk = await fetch(`${base}/api/admin/backup`, { headers: { 'x-admin-token': 'smoke-admin-token' } });
+    assert.strictEqual(bk.status, 200, 'backup ok');
+    const buf = Buffer.from(await bk.arrayBuffer());
+    assert.ok(buf.subarray(0, 16).toString('latin1').startsWith('SQLite format 3'), 'backup is a sqlite file');
+    assert.ok(buf.length > 4096, 'backup non-trivial size');
+    console.log(`  ✓ admin backup (${buf.length} bytes, sqlite magic ok)`);
+
     // 11. owner signup alert via Telegram path (fire-and-forget → settle delay)
     await sleep(400);
     assert.ok(captured.length >= 1, 'owner alert fired on new signup');

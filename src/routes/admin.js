@@ -7,6 +7,9 @@
 
 const express = require('express');
 const crypto = require('crypto');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const db = require('../db');
 const config = require('../config');
 
@@ -33,6 +36,20 @@ function maskEmail(email) {
   const head = user.slice(0, 2);
   return `${head}${'*'.repeat(Math.max(1, user.length - 2))}@${domain}`;
 }
+
+// DB snapshot download — disaster recovery (volumes can vanish; it happened).
+// Pulled nightly by .github/workflows/backup.yml, encrypted before storage.
+router.get('/backup', async (req, res) => {
+  const tmp = path.join(os.tmpdir(), `cronwatch-backup-${Date.now()}.sqlite`);
+  try {
+    await db.backupTo(tmp);
+    res.download(tmp, 'cronwatch.sqlite', () => fs.unlink(tmp, () => {}));
+  } catch (err) {
+    fs.unlink(tmp, () => {});
+    console.error(`[admin] backup failed: ${err.message}`);
+    res.status(500).json({ error: 'backup failed' });
+  }
+});
 
 router.get('/signal', (req, res) => {
   const views = db.statValue('landing_views');
