@@ -93,7 +93,9 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 
 **아직 없음 (의도적 — 범위 밖):** 인증/멀티테넌시, 이메일·Slack·**카톡** 실제 발송, 결제, 알림 중복억제 정교화, 배포.
 
-**배포됨 (2026-06-19):** Railway 라이브 → **https://cronwatch-production.up.railway.app** (LANDING_ONLY=true, 랜딩+waitlist만).
+**배포됨:** Railway 라이브 → **https://cronwatch-production.up.railway.app**
+- **2026-07-03: `LANDING_ONLY=false` 플립 → 풀 제품 공개** (랜딩 + `/app` 인증/감시 + ping + 워커 + 이메일). 검증: `/health` 200, `/app` 200, `/api/checks` 401, ping 라우트/워커 동작.
+- (그 전 어느 시점 서비스 Failed로 죽어 있었음 — 2026-07-03 재배포로 복구. 원인 로그 없음.)
 - 프로젝트 `cronwatch` (cdi2303's Projects), 서비스 `cronwatch`, 볼륨 `/data`(SQLite 영구저장).
 - 재배포: `kgy`에서 `railway up --detach` (이미 링크됨). 상태: `railway status`. 로그: `railway logs` / `railway logs --build`.
 - 프로덕션 변수: `LANDING_ONLY=true`, `DB_PATH=/data/cronwatch.sqlite`, `NIXPACKS_NODE_VERSION=20`.
