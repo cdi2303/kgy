@@ -1,0 +1,24 @@
+# Dogfooding + external death alarm.
+# Every ~10 min: verify production is healthy, then heartbeat the
+# "cronwatch-selfcheck" check. Two failure modes covered:
+#  - CronWatch fully down  -> health curl fails -> THIS WORKFLOW fails
+#    -> GitHub notifies the repo owner (CronWatch can't alert about its
+#    own death, so the alarm must live outside it).
+#  - App up but ping/DB path broken -> no heartbeat lands -> CronWatch's
+#    own worker flips the check down and alerts (email/webhook).
+# Ping URL lives in the SELFCHECK_PING_URL secret (public repo — an
+# exposed token would let anyone fake heartbeats and mask real outages).
+name: selfcheck
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: health
+        run: curl -fsS --max-time 20 https://cronwatch-production.up.railway.app/health
+      - name: heartbeat
+        run: curl -fsS --max-time 20 "${{ secrets.SELFCHECK_PING_URL }}" > /dev/null
