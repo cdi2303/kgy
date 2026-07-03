@@ -123,6 +123,7 @@ npm run smoke      # E2E 검증 (격리 DB, 빠른 워커). "SMOKE PASS ✅" 떠
 
 ## CI
 - GitHub Actions(`.github/workflows/ci.yml`): push(main)/PR마다 Node 20 + `npm ci` + `npm run smoke`. 초록 유지.
+- **Dogfooding**(`.github/workflows/selfcheck.yml`, 2026-07-03): 10분 cron으로 프로덕션 `/health` → 성공 시 `cronwatch-selfcheck` 체크(주기 600s/여유 1800s)에 ping. health 실패=워크플로 실패→GitHub 이메일(완전 사망용 외부 알람). ping URL은 GH secret `SELFCHECK_PING_URL`(repo public이라 비공개 필수). 계정: cdi2303@gmail.com(Resend 수신 가능 주소).
 
 ## 작업 규칙 (이 프로젝트)
 
